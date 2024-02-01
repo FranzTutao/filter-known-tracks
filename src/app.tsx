@@ -1,5 +1,4 @@
-// @ts-ignore
-import Dexie from 'dexie';
+import Dexie, {Table} from "https://esm.sh/dexie"
 
 async function main() {
     // await if everything necessary is loaded
@@ -17,11 +16,28 @@ async function main() {
         false,
     ).register();
 
-
-    async function test() {
-        const set = await getUserContentAsSet();
-        console.log(set);
+    function test() {
+        // const set = await getUserContentAsSet();
+        // console.log(set);
+        console.log("Pong");
+        db.webTracks.add();
     }
+
+    interface Track {
+        name: string
+        uri: string
+    }
+
+    const db = new (class extends Dexie {
+        webTracks!: Table<Track>
+
+        constructor() {
+            super("library-data")
+            this.version(1).stores({
+                webTracks: "&name, uri",
+            })
+        }
+    })()
 }
 
 /**
@@ -39,10 +55,11 @@ async function getUserContentAsSet() {
         const tracks = await handleItem(item);
         // add tracks to set
         // @ts-ignore
-        if (tracks === undefined || tracks === null) return userContentTracks;
-        userContentTracks.add(tracks);
+        if (tracks !== undefined) {
+            userContentTracks.add(tracks);
+        }
     }
-    return userContentTracks;
+    return [...userContentTracks].flat();
 }
 
 
@@ -57,12 +74,16 @@ async function handleItem(item) {
     if (item.type == "playlist") {
         return handlePlaylist(item);
     } else if (item.type == "folder") {
+        // create a Set for folder that stores all its contents
+        const folderTracks = new Set();
         // loop through folder contents
         for (const nestedItem of item.items) {
             // handle folder contents
-            await handleItem(nestedItem);
+            const tracks = await handleItem(nestedItem);
+            folderTracks.add(tracks);
         }
-        return;
+        // return folder contents
+        return [...folderTracks].flat();
     } else console.warn("Something other then Playlist or Folder got found");
 }
 
@@ -72,9 +93,13 @@ async function handleItem(item) {
  * @return tracks
  */
 async function handlePlaylist(playlist) {
-    if (playlist.totalLength <= 0) return;
+    // filter out other playlists and empty playlists
+    if (!(playlist.isCollaborative || playlist.isOwnedBySelf) || playlist.totalLength <= 0) return;
     const trackObject = await Spicetify.Platform.PlaylistAPI.getContents(playlist.uri);
     return trackObject.items;
 }
+
+// -------------------------------------Database--------------------------------------------------------------
+
 
 export default main;
