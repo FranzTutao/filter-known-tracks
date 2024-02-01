@@ -1,4 +1,4 @@
-import Dexie, {Table} from "https://esm.sh/dexie"
+// import Dexie, {Table} from "https://esm.sh/dexie"
 
 async function main() {
     // await if everything necessary is loaded
@@ -16,35 +16,32 @@ async function main() {
         false,
     ).register();
 
-    function test() {
-        // const set = await getUserContentAsSet();
-        // console.log(set);
-        console.log("Pong");
-        db.webTracks.add();
+    async function test(uri) {
+        // const allTracks = await getAllTracks();
+        const tracks = await getTracksFromContextMenu(uri[0]);
+        console.log(tracks);
     }
-
-    interface Track {
-        name: string
-        uri: string
-    }
-
-    const db = new (class extends Dexie {
-        webTracks!: Table<Track>
-
-        constructor() {
-            super("library-data")
-            this.version(1).stores({
-                webTracks: "&name, uri",
-            })
-        }
-    })()
 }
 
 /**
- *  function that gets all tracks a user has and returns them as Set of tracks
- *  @return Set of tracks
+ * get tracks from context menu (only if it's not your playlist!!!)
+ * @param uri
+ * @returns tracks as Array or undefined
  */
-async function getUserContentAsSet() {
+async function getTracksFromContextMenu(uri) {
+    // stop if its users own playlist
+    if (await isUserPlaylist(uri)) return;
+    // get Tracks from playlist
+    const trackObject = await getTracksFromPlaylist(uri);
+    // remove undefined entries and return Array?
+    return [...trackObject].flat();
+}
+
+/**
+ *  function that gets all tracks a user has and returns them as Array
+ *  @return tracks as Array
+ */
+async function getAllTracks() {
     // initialize set
     const userContentTracks = new Set;
     // get content as const to satisfy await
@@ -52,7 +49,7 @@ async function getUserContentAsSet() {
     // handle each item (can be playlist or folder)
     for (const item of userContents.items) {
         // get tracks as const to satisfy await
-        const tracks = await handleItem(item);
+        const tracks = await processItem(item);
         // add tracks to set
         // @ts-ignore
         if (tracks !== undefined) {
@@ -64,22 +61,23 @@ async function getUserContentAsSet() {
 
 
 /**
- * gets all playlists from item recursively and returns their tracks
+ * helper function to get all tracks from user
  * @param item (playlist or folder)
- * @return tracks (gotten from handlePlaylist())
+ * @return tracks as Array?
  */
 // @ts-ignore
-async function handleItem(item) {
+async function processItem(item) {
     // handle playlist
     if (item.type == "playlist") {
-        return handlePlaylist(item);
+        if (!await isUserPlaylist(item.uri)) return;
+        return await getTracksFromPlaylist(item.uri);
     } else if (item.type == "folder") {
         // create a Set for folder that stores all its contents
         const folderTracks = new Set();
         // loop through folder contents
         for (const nestedItem of item.items) {
             // handle folder contents
-            const tracks = await handleItem(nestedItem);
+            const tracks = await processItem(nestedItem);
             folderTracks.add(tracks);
         }
         // return folder contents
@@ -88,15 +86,23 @@ async function handleItem(item) {
 }
 
 /**
- * returns all tracks from the inputted playlist
- * @param playlist
+ * returns all tracks from the inputted playlist (uri)
+ * @param uri from playlist
  * @return tracks
  */
-async function handlePlaylist(playlist) {
-    // filter out other playlists and empty playlists
-    if (!(playlist.isCollaborative || playlist.isOwnedBySelf) || playlist.totalLength <= 0) return;
-    const trackObject = await Spicetify.Platform.PlaylistAPI.getContents(playlist.uri);
+async function getTracksFromPlaylist(uri) {
+    const trackObject = await Spicetify.Platform.PlaylistAPI.getContents(uri);
     return trackObject.items;
+}
+
+/**
+ * check if the provided playlist belongs to the user or not
+ * @param uri
+ * @returns boolean
+ */
+async function isUserPlaylist(uri) {
+    const playlist = await Spicetify.Platform.PlaylistAPI.getPlaylist(uri);
+    return await (playlist.metadata.isCollaborative || playlist.metadata.isOwnedBySelf || playlist.metadata.canAdd) || playlist.metadata.totalLength <= 0;
 }
 
 // -------------------------------------Database--------------------------------------------------------------
