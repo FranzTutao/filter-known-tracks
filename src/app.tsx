@@ -17,9 +17,17 @@ async function main() {
     ).register();
 
     async function test(uri) {
-        // const allTracks = await getAllTracks();
-        const tracks = await getTracksFromContextMenu(uri[0]);
-        console.log(tracks);
+        // get playlist of context menu
+        // const playlist = Spicetify.Platform.PlaylistAPI.getPlaylist(uri);
+
+        // spotify:playlist:04tf06kzbTCW70KXx0M9Lw
+        // create playlist
+        // console.log(await createNewPlaylist("Hello World"));
+
+        // test database
+        // db.webTracks.add("idk", "idk");
+
+        console.log(getISRC("spotify:track:6ibDVMcMUNqZ5eXT9sD4Vy"));
     }
 }
 
@@ -105,7 +113,81 @@ async function isUserPlaylist(uri) {
     return await (playlist.metadata.isCollaborative || playlist.metadata.isOwnedBySelf || playlist.metadata.canAdd) || playlist.metadata.totalLength <= 0;
 }
 
+/**
+ * create new playlist that will contain all the tracks
+ * @param name
+ * @returns uri of created playlist
+ */
+async function createNewPlaylist(name) {
+    return await Spicetify.Platform.RootlistAPI.createPlaylist(name, "", "");
+}
+
+/**
+ *  add track(s) to playlist
+ * @param playlistUri playlist the track will be added to
+ * @param trackUri uri of track or array of uri's that will be added
+ */
+async function addTracksToPlaylist(playlistUri, trackUri) {
+    // handle Array
+    if (Array.isArray(trackUri)) {
+        await Spicetify.Platform.PlaylistAPI.add(playlistUri, trackUri, {});
+        // handle String
+    } else await Spicetify.Platform.PlaylistAPI.add(playlistUri, [trackUri], {});
+}
+
+/**
+ * gets isrc of track(s) using their uri
+ * @param uri as String or Array
+ * @returns isrc as String or Array
+ */
+async function getISRC(uris) {
+    // handle Array
+    if (Array.isArray(uris)) {
+        const ISRCs = new Set();
+        // loop through Array
+        for (const uri of uris) {
+            // get trackId from uri
+            const trackId = uri.split(":")[2];
+            const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
+            // check if we got the ISRC
+            if (response.external_ids && response.external_ids.isrc) {
+                ISRCs.add(response.external_ids.isrc);
+            } else {
+                console.warn("ERROR when getting the ISRC");
+            }
+        }
+        // return Array of ISRC's
+        return [...ISRCs].flat();
+        // handle String
+    } else {
+        // get trackId from uri
+        const trackId = uris.split(":")[2];
+        const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
+        // check if we got the ISRC
+        if (response.external_ids && response.external_ids.isrc) {
+            return response.external_ids.isrc;
+        } else {
+            console.warn("ERROR when getting the ISRC");
+        }
+    }
+}
+
 // -------------------------------------Database--------------------------------------------------------------
 
+// interface Track {
+//     name: string
+//     uri: string
+// }
+//
+// const db = new (class extends Dexie {
+//     webTracks!: Table<Track>
+//
+//     constructor() {
+//         super("library-data")
+//         this.version(1).stores({
+//             webTracks: "&name, uri",
+//         })
+//     }
+// })()
 
 export default main;
