@@ -15,6 +15,108 @@ async function main() {
         "enhance",
         false,
     ).register();
+    // register event listener for add/ remove songs
+    Spicetify.Platform.PlaylistAPI.getEvents().addListener("operation_complete", trackEventHandler);
+    Spicetify.Platform.RootlistAPI.getEvents().addListener("operation_complete", playlistEventHandler);
+    Spicetify.Platform.LibraryAPI.getEvents().addListener("operation_complete", likedEventHandler);
+
+    /**
+     * get added/ deleted tracks
+     * @param event
+     * @returns uris as Array
+     */
+    async function trackEventHandler(event) {
+        // check if needed content exists
+        if (event && event.data && event.data.operation) {
+            // check if its desired event
+            if (event.data.operation === "add") {
+                // check if needed content exists
+                if (!event.data.uris) return;
+                // handle empty
+                if (event.data.uris.isEmpty) return;
+                // get all tracks that got added
+                console.log(event.data.uris);
+            }
+            // check if its desired event
+            else if (event.data.operation === "remove") {
+                // check if needed content exists
+                if (!event.data.items) return;
+                // handle empty
+                if (event.data.items.isEmpty) return;
+                // get all tracks that got added
+                const deletedTracks = new Set;
+                for (const track of event.data.items) {
+                    deletedTracks.add(track.uri);
+                }
+                console.log([...deletedTracks].flat());
+            }
+        } else {
+            console.warn("Unable to tell event type");
+        }
+    }
+
+    /**
+     * gets passive deleted tracks
+     * @param event
+     * @returns uri's as Array
+     */
+    async function playlistEventHandler(event) {
+        // check if needed content exists
+        if (event && event.data && event.data.operation) {
+            // check if its desired event
+            if (event.data.operation !== "remove") return;
+            // check if needed content exists
+            if (event.data.items) {
+                // handle empty
+                if (event.data.items.isEmpty) return;
+                // get all tracks from playlist
+                const deletedTracks = new Set;
+                for (const playlist of event.data.items) {
+                    deletedTracks.add(await getTracksFromPlaylist(playlist.uri));
+                }
+                console.log([...deletedTracks].flat());
+            } else {
+                console.warn("Unable to get relevant playlist");
+            }
+        } else {
+            console.warn("Unable to tell event type");
+        }
+    }
+
+    /**
+     * get added/ deleted liked tracks
+     * @param event
+     * @returns uri's as Array
+     */
+    async function likedEventHandler(event) {
+        // check if needed content exists
+        if (event && event.data && event.data.operation) {
+            // check if its desired event
+            if (event.data.operation === "add") {
+                // check if needed content exists
+                if (!event.data.uris) return;
+                // handle empty
+                if (event.data.uris.isEmpty) return;
+                // get all tracks that got added
+                console.log(event.data.uris);
+            }
+            // check if its desired event
+            else if (event.data.operation === "remove") {
+                // check if needed content exists
+                if (!event.data.uris) return;
+                // handle empty
+                if (event.data.uris.isEmpty) return;
+                // get all tracks that got removed
+                const unLikedTracks = new Set;
+                for (const track of event.data.uris) {
+                    unLikedTracks.add(track);
+                }
+                console.log([...unLikedTracks].flat());
+            }
+        } else {
+            console.warn("Unable to tell event type");
+        }
+    }
 
     async function test(uri) {
         // get playlist of context menu
@@ -26,8 +128,7 @@ async function main() {
 
         // test database
         // db.webTracks.add("idk", "idk");
-
-        console.log(getISRC("spotify:track:6ibDVMcMUNqZ5eXT9sD4Vy"));
+        console.log(await getAllTracks());
     }
 }
 
@@ -64,6 +165,7 @@ async function getAllTracks() {
             userContentTracks.add(tracks);
         }
     }
+    await userContentTracks.add(getLikedTracks());
     return [...userContentTracks].flat();
 }
 
@@ -86,21 +188,33 @@ async function processItem(item) {
         for (const nestedItem of item.items) {
             // handle folder contents
             const tracks = await processItem(nestedItem);
-            folderTracks.add(tracks);
+            folderTracks.add(await getLikedTracks());
         }
         // return folder contents
         return [...folderTracks].flat();
-    } else console.warn("Something other then Playlist or Folder got found");
+    } else {
+        console.warn("Something other then Playlist or Folder got found");
+    }
 }
 
 /**
  * returns all tracks from the inputted playlist (uri)
  * @param uri from playlist
- * @return tracks
+ * @return tracks as Array
  */
 async function getTracksFromPlaylist(uri) {
     const trackObject = await Spicetify.Platform.PlaylistAPI.getContents(uri);
     return trackObject.items;
+}
+
+/**
+ * get all liked tracks
+ * @returns liked tracks as Array
+ */
+async function getLikedTracks() {
+    const liked = await Spicetify.Platform.LibraryAPI.getTracks({offset: 0, limit: -1});
+    if (!liked) return;
+    return liked.items;
 }
 
 /**
