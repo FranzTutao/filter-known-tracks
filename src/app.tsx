@@ -27,31 +27,24 @@ async function main() {
      */
     async function trackEventHandler(event) {
         // check if needed content exists
-        if (event && event.data && event.data.operation) {
-            // check if its desired event
-            if (event.data.operation === "add") {
-                // check if needed content exists
-                if (!event.data.uris) return;
-                // handle empty
-                if (event.data.uris.isEmpty) return;
-                // get all tracks that got added
-                console.log(event.data.uris);
+        if (!event?.data?.operation) return console.warn("Unable to tell event type");
+        // check if its desired event
+        if (event.data.operation === "add") {
+            // check if needed content exists
+            if (!event.data?.uris || event.data.uris.isEmpty) return console.warn("Unable to get relevant tracks");
+            // get all tracks that got added
+            console.log(event.data.uris);
+        }
+        // check if its desired event
+        else if (event.data.operation === "remove") {
+            // check if needed content exists
+            if (!event.data?.items || event.data.items.isEmpty) return;
+            // handle empty
+            const deletedTracks = new Set;
+            for (const track of event.data.items) {
+                deletedTracks.add(track.uri);
             }
-            // check if its desired event
-            else if (event.data.operation === "remove") {
-                // check if needed content exists
-                if (!event.data.items) return;
-                // handle empty
-                if (event.data.items.isEmpty) return;
-                // get all tracks that got added
-                const deletedTracks = new Set;
-                for (const track of event.data.items) {
-                    deletedTracks.add(track.uri);
-                }
-                console.log([...deletedTracks].flat());
-            }
-        } else {
-            console.warn("Unable to tell event type");
+            console.log([...deletedTracks].flat());
         }
     }
 
@@ -62,25 +55,17 @@ async function main() {
      */
     async function playlistEventHandler(event) {
         // check if needed content exists
-        if (event && event.data && event.data.operation) {
-            // check if its desired event
-            if (event.data.operation !== "remove") return;
-            // check if needed content exists
-            if (event.data.items) {
-                // handle empty
-                if (event.data.items.isEmpty) return;
-                // get all tracks from playlist
-                const deletedTracks = new Set;
-                for (const playlist of event.data.items) {
-                    deletedTracks.add(await getTracksFromPlaylist(playlist.uri));
-                }
-                console.log([...deletedTracks].flat());
-            } else {
-                console.warn("Unable to get relevant playlist");
-            }
-        } else {
-            console.warn("Unable to tell event type");
+        if (!event?.data?.operation) return console.warn("Unable to tell event type");
+        // check if its desired event
+        if (event.data.operation !== "remove") return;
+        // check if needed content exists
+        if (!event.data?.items || event.data.items.isEmpty) return console.warn("Unable to get relevant playlist");
+        // get all tracks from playlist
+        const deletedTracks = new Set;
+        for (const playlist of event.data.items) {
+            deletedTracks.add(await getTracksFromPlaylist(playlist.uri));
         }
+        console.log([...deletedTracks].flat());
     }
 
     /**
@@ -90,31 +75,24 @@ async function main() {
      */
     async function likedEventHandler(event) {
         // check if needed content exists
-        if (event && event.data && event.data.operation) {
-            // check if its desired event
-            if (event.data.operation === "add") {
-                // check if needed content exists
-                if (!event.data.uris) return;
-                // handle empty
-                if (event.data.uris.isEmpty) return;
-                // get all tracks that got added
-                console.log(event.data.uris);
+        if (!event?.data?.operation) return console.warn("Unable to tell event type");
+        // check if its desired event
+        if (event.data.operation === "add") {
+            // check if needed content exists
+            if (!event.data?.uris || event.data.uris.isEmpty) return console.warn("Unable to get relevant tracks");
+            // get all tracks that got added
+            console.log(event.data.uris);
+        }
+        // check if its desired event
+        else if (event.data.operation === "remove") {
+            // check if needed content exists
+            if (!event.data?.uris || event.data.uris.isEmpty) return console.warn("Unable to get relevant tracks");
+            // get all tracks that got removed
+            const unLikedTracks = new Set;
+            for (const track of event.data.uris) {
+                unLikedTracks.add(track);
             }
-            // check if its desired event
-            else if (event.data.operation === "remove") {
-                // check if needed content exists
-                if (!event.data.uris) return;
-                // handle empty
-                if (event.data.uris.isEmpty) return;
-                // get all tracks that got removed
-                const unLikedTracks = new Set;
-                for (const track of event.data.uris) {
-                    unLikedTracks.add(track);
-                }
-                console.log([...unLikedTracks].flat());
-            }
-        } else {
-            console.warn("Unable to tell event type");
+            console.log([...unLikedTracks].flat());
         }
     }
 
@@ -160,12 +138,11 @@ async function getAllTracks() {
         // get tracks as const to satisfy await
         const tracks = await processItem(item);
         // add tracks to set
-        // @ts-ignore
         if (tracks !== undefined) {
             userContentTracks.add(tracks);
         }
     }
-    await userContentTracks.add(getLikedTracks());
+    userContentTracks.add(await getLikedTracks());
     return [...userContentTracks].flat();
 }
 
@@ -188,7 +165,7 @@ async function processItem(item) {
         for (const nestedItem of item.items) {
             // handle folder contents
             const tracks = await processItem(nestedItem);
-            folderTracks.add(await getLikedTracks());
+            folderTracks.add(tracks);
         }
         // return folder contents
         return [...folderTracks].flat();
@@ -237,16 +214,15 @@ async function createNewPlaylist(name) {
 }
 
 /**
- *  add track(s) to playlist
+ *  add tracks to playlist
  * @param playlistUri playlist the track will be added to
- * @param trackUri uri of track or array of uri's that will be added
+ * @param trackUri uri's of tracks that will be added
  */
 async function addTracksToPlaylist(playlistUri, trackUri) {
-    // handle Array
-    if (Array.isArray(trackUri)) {
-        await Spicetify.Platform.PlaylistAPI.add(playlistUri, trackUri, {});
-        // handle String
-    } else await Spicetify.Platform.PlaylistAPI.add(playlistUri, [trackUri], {});
+    // make trackUri an Array
+    const trackUris = [trackUri].flat()
+    // add to specified playlist
+    Spicetify.Platform.PlaylistAPI.add(playlistUri, trackUris, {});
 }
 
 /**
