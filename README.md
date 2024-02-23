@@ -14,7 +14,7 @@ Check out [Spicetify's docs](https://spicetify.app/docs/development/spicetify-cr
 
 ## Inspiration
 
-https://github.com/huhridge/huh-spicetify-extensions/
+
 
 https://dexie.org/docs/Typescript
 
