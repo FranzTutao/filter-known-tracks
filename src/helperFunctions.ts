@@ -6,41 +6,72 @@
 // console.log(await createNewPlaylist("Hello World"));
 
 
+import {getAllTracks} from "./getInitialTracks.js";
+import {db} from "./database.js";
+
 /**
- * gets isrc of track(s) using their uri
- * @param uri as String or Array
- * @returns isrc as String or Array
+ * gets trackObjects using their uri
+ * @param uris as String or Array
+ * @returns trackObject
  */
-export async function getISRC(uris) {
+export async function getTrackObject(uris) {
     // handle Array
     if (Array.isArray(uris)) {
-        const ISRCs = new Set();
+        const trackObjects = [];
         // loop through Array
         for (const uri of uris) {
             // get trackId from uri
             const trackId = uri.split(":")[2];
             const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
-            // check if we got the ISRC
-            if (response.external_ids && response.external_ids.isrc) {
-                ISRCs.add(response.external_ids.isrc);
-            } else {
-                console.warn("ERROR when getting the ISRC");
+            const trackObject = await makeTrackObject(response)
+            // check for error (null)
+            if (trackObject) {
+                trackObjects.push(trackObject)
             }
         }
         // return Array of ISRC's
-        return [...ISRCs].flat();
+        return trackObjects.flat();
         // handle String
     } else {
         // get trackId from uri
         const trackId = uris.split(":")[2];
         const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
-        // check if we got the ISRC
-        if (response.external_ids && response.external_ids.isrc) {
-            return response.external_ids.isrc;
-        } else {
-            console.warn("ERROR when getting the ISRC");
+        const trackObject = await makeTrackObject(response)
+        // check for error (null)
+        if (trackObject) {
+            return trackObject
         }
+        return null
     }
+}
+
+/**
+ * converts track api response to track object
+ * @param response
+ * @return trackObject or null
+ */
+export async function makeTrackObject(response) {
+    // return null if objects are not present
+    if (!response?.uri || !response?.external_ids?.isrc ||
+        !response?.name || !response?.artists || !response?.duration_ms) {
+        console.warn("Error while getting TrackObject")
+        Spicetify.showNotification("Error while getting TrackObject")
+        return null
+    }
+    // get artist name as array of strings
+    const artists : Array<string> = []
+    for (const artist of response.artists) {
+        artists.push(artist.name)
+    }
+    // create and return track object
+    const trackObject: Track = {
+        uri: response.uri,
+        isrc: response.external_ids.isrc,
+        name: response.name,
+        artist: artists,
+        duration: response.duration_ms
+    }
+    return trackObject
 }
 
 /**
@@ -58,8 +89,10 @@ export async function createNewPlaylist(name) {
  * @param trackUri uri's of tracks that will be added
  */
 export function addTracksToPlaylist(playlistUri, trackUri) {
+    // remove duplicates
+    const uniqueTrackUri = [...new Set(trackUri)]
     // make trackUri an Array
-    const trackUris = [trackUri].flat();
+    const trackUris = [uniqueTrackUri].flat();
     // add to specified playlist
     Spicetify.Platform.PlaylistAPI.add(playlistUri, trackUris, {});
 }
@@ -79,13 +112,17 @@ export async function getTracksFromContextMenu(uri) {
 }
 
 /**
- * returns all tracks from the inputted playlist (uri)
+ * returns all track uris from the inputted playlist (uri)
  * @param uri from playlist
- * @return tracks as Array
+ * @return uris of tracks as Array
  */
 export async function getTracksFromPlaylist(uri) {
     const trackObject = await Spicetify.Platform.PlaylistAPI.getContents(uri);
-    return trackObject.items;
+    const uris = []
+    for (const item of trackObject.items) {
+        uris.push(item.uri)
+    }
+    return uris;
 }
 
 /**
@@ -97,3 +134,32 @@ export async function isUserPlaylist(uri) {
     const playlist = await Spicetify.Platform.PlaylistAPI.getPlaylist(uri);
     return await (playlist.metadata.isCollaborative || playlist.metadata.isOwnedBySelf || playlist.metadata.canAdd) || playlist.metadata.totalLength <= 0;
 }
+
+export interface Track {
+    uri: string
+    isrc: string
+    name: string
+    artist: Array<string>
+    duration: number
+}
+
+/**
+ * resync library on startup
+ */
+export async function resync() {
+    console.log(await getAllTracks())
+}
+
+/**
+ * check if uri's are in the database
+ * @param uris
+ */
+export async function uriIsInDatabase(uris) {
+    const inDatabase = await db.webTracks.bulkGet(uris)
+
+}
+
+/**
+ * counter to store how many times a track is in library
+ */
+export const counter = new Map

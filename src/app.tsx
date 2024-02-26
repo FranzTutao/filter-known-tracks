@@ -1,5 +1,5 @@
 import {likedEventHandler, playlistEventHandler, trackEventHandler} from "./listener.js";
-import {getTracksFromContextMenu} from "./helperFunctions.js";
+import {getTracksFromContextMenu, resync} from "./helperFunctions.js";
 
 async function main() {
     // await if everything necessary is loaded
@@ -11,7 +11,7 @@ async function main() {
     // register context menu
     new Spicetify.ContextMenu.Item(
         "Generate filtered playlist",
-        onPlaylistContextMenu,
+        test,
         (uri) => Spicetify.URI.fromString(uri[0]).type == Spicetify.URI.Type.PLAYLIST_V2,
         "enhance",
         false,
@@ -26,12 +26,21 @@ async function main() {
     async function onPlaylistContextMenu(uri) {
         // get tracks that have to be compared to the database
         const tracksToCompare = await getTracksFromContextMenu(uri)
+        // handle error
         if (!tracksToCompare) {
             console.log("Unable to fetch Tracks of this playlist.")
             console.log("Tracks to Compare to: " + tracksToCompare)
             Spicetify.showNotification("Unable to fetch Tracks of this playlist, please retry")
         }
     }
+}
+
+async function test() {
+    // db.webTracks.add(trackObject as Track)
+    // console.log(db.webTracks.get(trackObject.uri))
+    // db.webTracks.delete(trackObject.uri)
+
+    await resync()
 }
 
 

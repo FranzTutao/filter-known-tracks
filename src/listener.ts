@@ -1,7 +1,10 @@
+import {db} from "./database.js";
+import {getTrackObject, getTracksFromPlaylist} from "./helperFunctions.js";
+
 /**
- * get added/ deleted tracks
+ * get added/ deleted tracks and add/ remove from db
  * @param event
- * @returns uris as Array
+ *
  */
 export async function trackEventHandler(event) {
     // check if needed content exists
@@ -11,7 +14,9 @@ export async function trackEventHandler(event) {
         // check if needed content exists
         if (!event.data?.uris || event.data.uris.isEmpty) return console.warn("Unable to get relevant tracks");
         // get all tracks that got added
-        console.log(event.data.uris);
+        const trackObject = await getTrackObject(event.data.uris)
+        // add tracks to db
+        db.webTracks.bulkAdd(trackObject)
     }
     // check if its desired event
     else if (event.data.operation === "remove") {
@@ -22,14 +27,15 @@ export async function trackEventHandler(event) {
         for (const track of event.data.items) {
             deletedTracks.add(track.uri);
         }
-        console.log([...deletedTracks].flat());
+        // remove tracks from db
+        db.webTracks.bulkDelete([...deletedTracks].flat())
     }
 }
 
 /**
- * gets passive deleted tracks
+ * gets passive deleted tracks and removes them from db
  * @param event
- * @returns uri's as Array
+ *
  */
 export async function playlistEventHandler(event) {
     // check if needed content exists
@@ -43,13 +49,14 @@ export async function playlistEventHandler(event) {
     for (const playlist of event.data.items) {
         deletedTracks.add(await getTracksFromPlaylist(playlist.uri));
     }
-    console.log([...deletedTracks].flat());
+    // delete tracks from db
+    db.webTracks.bulkDelete([...deletedTracks].flat())
 }
 
 /**
- * get added/ deleted liked tracks
+ * get added/ deleted liked tracks and adds/ removes these from db
  * @param event
- * @returns uri's as Array
+ *
  */
 export async function likedEventHandler(event) {
     // check if needed content exists
@@ -58,8 +65,9 @@ export async function likedEventHandler(event) {
     if (event.data.operation === "add") {
         // check if needed content exists
         if (!event.data?.uris || event.data.uris.isEmpty) return console.warn("Unable to get relevant tracks");
-        // get all tracks that got added
-        console.log(event.data.uris);
+        // add all tracks that got added to db
+        const trackObjects = await getTrackObject(event.data.uris)
+        db.webTracks.bulkAdd(trackObjects)
     }
     // check if its desired event
     else if (event.data.operation === "remove") {
@@ -70,6 +78,7 @@ export async function likedEventHandler(event) {
         for (const track of event.data.uris) {
             unLikedTracks.add(track);
         }
-        console.log([...unLikedTracks].flat());
+        // remove tracks from db
+        db.webTracks.bulkDelete([...unLikedTracks].flat())
     }
 }

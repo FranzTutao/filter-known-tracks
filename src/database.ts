@@ -1,9 +1,6 @@
 import Dexie, {Table} from "dexie";
+import {Track} from "./helperFunctions.js";
 
-interface Track {
-    name: string
-    uri: string
-}
 
 export const db = new (class extends Dexie {
     webTracks!: Table<Track>
@@ -11,7 +8,7 @@ export const db = new (class extends Dexie {
     constructor() {
         super("library-data")
         this.version(1).stores({
-            webTracks: "&name, uri",
+            webTracks: "&uri, isrc, name, artist, duration",
         })
     }
 })()
