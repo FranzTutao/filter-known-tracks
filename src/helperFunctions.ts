@@ -15,22 +15,41 @@ import {db} from "./database.js";
  * @returns trackObject
  */
 export async function getTrackObject(uris) {
+    // check if uris exists
+    if (!uris) {
+        console.warn("Uri passed to getTrackObject is faulty: " + uris)
+        Spicetify.showNotification("Uri passed to getTrackObject is faulty")
+        return null
+    }
     // handle Array
     if (Array.isArray(uris)) {
-        const trackObjects = [];
-        // loop through Array
+        const trackIds = new Set
+        const response = []
+        // loop through Array of uris
         for (const uri of uris) {
             // get trackId from uri
             const trackId = uri.split(":")[2];
-            const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
-            const trackObject = await makeTrackObject(response)
-            // check for error (null)
-            if (trackObject) {
-                trackObjects.push(trackObject)
-            }
+            if (trackId) trackIds.add(trackId)
         }
-        // return Array of ISRC's
-        return trackObjects.flat();
+        console.log(trackIds)
+        // split into 100 chunks for api request
+        for (let i = 0; i < trackIds.size; i += 100) {
+            // format
+            const formattedTrackIds = [...trackIds].slice(i, i + 100).join(",")
+            console.log("Formatted and encoded IDs: " + encodeURI(formattedTrackIds))
+            response.push(await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`))
+        }
+        // format response to get tracks and check for valid response
+        response.flat()
+        console.log(response)
+        if (!response[0]?.tracks) {
+            console.warn("Empty bulk api response")
+            return null
+        }
+        // get trackObjects and return
+        return await makeTrackObject(response[0].tracks)
+
+
         // handle String
     } else {
         // get trackId from uri
@@ -41,6 +60,8 @@ export async function getTrackObject(uris) {
         if (trackObject) {
             return trackObject
         }
+        console.warn("Spotify response faulty: " + trackObject)
+        Spicetify.showNotification("Spotify response faulty")
         return null
     }
 }
@@ -59,7 +80,7 @@ export async function makeTrackObject(response) {
         return null
     }
     // get artist name as array of strings
-    const artists : Array<string> = []
+    const artists: Array<string> = []
     for (const artist of response.artists) {
         artists.push(artist.name)
     }
@@ -135,6 +156,9 @@ export async function isUserPlaylist(uri) {
     return await (playlist.metadata.isCollaborative || playlist.metadata.isOwnedBySelf || playlist.metadata.canAdd) || playlist.metadata.totalLength <= 0;
 }
 
+/**
+ * structure Tracks are saved in the database
+ */
 export interface Track {
     uri: string
     isrc: string
@@ -144,19 +168,40 @@ export interface Track {
 }
 
 /**
- * resync library on startup
+ * resync database
+ *
  */
 export async function resync() {
-    console.log(await getAllTracks())
-}
+    // get local track uris
+    let urisToSync = await getAllTracks()
+    // get all database tracks
+    const allTracks = await db.webTracks.toArray();
 
-/**
- * check if uri's are in the database
- * @param uris
- */
-export async function uriIsInDatabase(uris) {
-    const inDatabase = await db.webTracks.bulkGet(uris)
+    // filter tracks that are in database, but not local
+    const tracksToDelete = allTracks.filter(track => !urisToSync.includes(track.uri));
+    // check if anything needs to be removed
+    if (tracksToDelete.length >= 1) {
+        // delete tracks not in the URI array
+        for (const track of tracksToDelete) {
+            await db.webTracks.delete(track.uri);
+        }
+    }
+    // add missing tracks to database
+    // collect all uris missing
+    const urisToAdd = []
+    // handle each track
+    for (const uri of urisToSync) {
+        // check if already in database
+        const exists = allTracks.some(track => track.uri === uri);
+        if (!exists && uri) {
+            urisToAdd.push(uri)
+        }
+    }
+    const trackObjects = await getTrackObject(urisToAdd.flat())
 
+    if (trackObjects) {
+        await db.webTracks.bulkAdd(trackObjects)
+    }
 }
 
 /**

@@ -1,5 +1,6 @@
 import {likedEventHandler, playlistEventHandler, trackEventHandler} from "./listener.js";
 import {getTracksFromContextMenu, resync} from "./helperFunctions.js";
+import {db} from "./database.js";
 
 async function main() {
     // await if everything necessary is loaded
@@ -39,8 +40,8 @@ async function test() {
     // db.webTracks.add(trackObject as Track)
     // console.log(db.webTracks.get(trackObject.uri))
     // db.webTracks.delete(trackObject.uri)
-
     await resync()
+    // await db.webTracks.add(trackObject as Track)
 }
 
 
