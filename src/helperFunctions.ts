@@ -23,31 +23,38 @@ export async function getTrackObject(uris) {
     }
     // handle Array
     if (Array.isArray(uris)) {
+        // store trackIds from uris
         const trackIds = new Set
-        const response = []
+        // Array of all responses
+        const bulkResponse = []
+        //store all trackObjects
+        const trackObjects = []
+
         // loop through Array of uris
         for (const uri of uris) {
             // get trackId from uri
             const trackId = uri.split(":")[2];
             if (trackId) trackIds.add(trackId)
         }
-        console.log(trackIds)
-        // split into 100 chunks for api request
-        for (let i = 0; i < trackIds.size; i += 100) {
-            // format
-            const formattedTrackIds = [...trackIds].slice(i, i + 100).join(",")
-            console.log("Formatted and encoded IDs: " + encodeURI(formattedTrackIds))
-            response.push(await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`))
+        // split into 45 chunks for api request (at 50 it times out; if I want 100, I have to write my own fetch)
+        for (let i = 0; i < trackIds.size; i += 45) {
+            // format into String seperated by comma
+            const formattedTrackIds = [...trackIds].slice(i, i + 45).join(",")
+            const singeResponse = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)
+            // save tracks in an Array
+            bulkResponse.push(singeResponse.tracks)
         }
-        // format response to get tracks and check for valid response
-        response.flat()
-        console.log(response)
-        if (!response[0]?.tracks) {
+        // format Array of Array's to only an Array which contains the Tracks
+        if (!bulkResponse) {
             console.warn("Empty bulk api response")
             return null
         }
         // get trackObjects and return
-        return await makeTrackObject(response[0].tracks)
+        for (const response of (bulkResponse.flat())) {
+            const trackObject = await makeTrackObject(response)
+            if (trackObject) trackObjects.push(trackObject);
+        }
+        return trackObjects
 
 
         // handle String
@@ -75,7 +82,8 @@ export async function makeTrackObject(response) {
     // return null if objects are not present
     if (!response?.uri || !response?.external_ids?.isrc ||
         !response?.name || !response?.artists || !response?.duration_ms) {
-        console.warn("Error while getting TrackObject")
+        console.warn("Error while getting TrackObject: ")
+        console.warn(response)
         Spicetify.showNotification("Error while getting TrackObject")
         return null
     }
