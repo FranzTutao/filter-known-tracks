@@ -37,11 +37,8 @@ async function main() {
 }
 
 async function test() {
-    // db.webTracks.add(trackObject as Track)
-    // console.log(db.webTracks.get(trackObject.uri))
-    // db.webTracks.delete(trackObject.uri)
-    await resync()
-    // await db.webTracks.add(trackObject as Track)
+    // await resync()
+
 }
 
 

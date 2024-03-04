@@ -6,8 +6,6 @@
 // console.log(await createNewPlaylist("Hello World"));
 
 
-import {getAllTracks} from "./getInitialTracks.js";
-import {db} from "./database.js";
 
 /**
  * gets trackObjects using their uri
@@ -174,45 +172,3 @@ export interface Track {
     artist: Array<string>
     duration: number
 }
-
-/**
- * resync database
- *
- */
-export async function resync() {
-    // get local track uris
-    let urisToSync = await getAllTracks()
-    // get all database tracks
-    const allTracks = await db.webTracks.toArray();
-
-    // filter tracks that are in database, but not local
-    const tracksToDelete = allTracks.filter(track => !urisToSync.includes(track.uri));
-    // check if anything needs to be removed
-    if (tracksToDelete.length >= 1) {
-        // delete tracks not in the URI array
-        for (const track of tracksToDelete) {
-            await db.webTracks.delete(track.uri);
-        }
-    }
-    // add missing tracks to database
-    // collect all uris missing
-    const urisToAdd = []
-    // handle each track
-    for (const uri of urisToSync) {
-        // check if already in database
-        const exists = allTracks.some(track => track.uri === uri);
-        if (!exists && uri) {
-            urisToAdd.push(uri)
-        }
-    }
-    const trackObjects = await getTrackObject(urisToAdd.flat())
-
-    if (trackObjects) {
-        await db.webTracks.bulkAdd(trackObjects)
-    }
-}
-
-/**
- * counter to store how many times a track is in library
- */
-export const counter = new Map
