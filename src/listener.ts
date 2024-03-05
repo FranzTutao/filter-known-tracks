@@ -39,11 +39,17 @@ export async function trackEventHandler(event) {
  */
 export async function playlistEventHandler(event) {
     // check if needed content exists
-    if (!event?.data?.operation) return console.warn("Unable to tell event type");
+    if (!event?.data?.operation) {
+        console.warn("Unable to tell event type")
+        return
+    }
     // check if its desired event
     if (event.data.operation !== "remove") return;
     // check if needed content exists
-    if (!event.data?.items || event.data.items.isEmpty) return console.warn("Unable to get relevant playlist");
+    if (!event.data?.items || event.data.items.isEmpty) {
+        console.warn("Unable to get relevant playlist");
+        return
+    }
     // get all uris to delete
     const urisToDelete = [];
     for (const playlist of event.data.items) {
@@ -92,7 +98,7 @@ export async function addTracksToDatabase(uris) {
     // check if uris has entries
     if (uris.length <= 0) return
     const urisToAdd = []
-    for (let i = 0; i >= uris.size - 1; i++) {
+    for (let i = 0; i <= uris.length - 1; i++) {
         // check if Track exists in database and map
         if (counter.has(uris[i])) {
             // increase value of entry in Map
@@ -123,7 +129,7 @@ export function removeTracks(uris) {
     // check if uris has entries
     if (uris.length <= 0) return
     const urisToRemove = []
-    for (let i = 0; i >= uris.size - 1; i++) {
+    for (let i = 0; i <= uris.length - 1; i++) {
         const uri = uris[i]
         // skip if uri isn't in map/ database
         if (!counter.has(uri)) continue

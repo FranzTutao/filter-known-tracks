@@ -10,8 +10,6 @@ async function main() {
     }
     // Show message on start.
     Spicetify.showNotification("Hello Franz3, welcome back <3");
-    // register context menu
-    contextMenu.register()
     // await for content to load
     while (!Spicetify?.Platform?.PlaylistAPI?.getPlaylist) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -20,13 +18,12 @@ async function main() {
     await resync()
     Spicetify.showNotification("ReSync complete")
     console.log("ReSync complete")
+    // register context menu
+    contextMenu.register()
     // register event listener for add/ remove songs
     Spicetify.Platform.PlaylistAPI.getEvents().addListener("operation_complete", trackEventHandler);
     Spicetify.Platform.RootlistAPI.getEvents().addListener("operation_complete", playlistEventHandler);
     Spicetify.Platform.LibraryAPI.getEvents().addListener("operation_complete", likedEventHandler);
 }
-
-
-
 
 export default main;

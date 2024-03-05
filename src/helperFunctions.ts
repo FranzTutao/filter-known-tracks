@@ -248,9 +248,6 @@ export async function onPlaylistContextMenu(uris) {
         const createdPlaylistUri = await createNewPlaylist(playlistName)
         // add Tracks to playlist
         addTracksToPlaylist(createdPlaylistUri, urisToAdd)
-        // add added tracks to database and map
-        db.webTracks.bulkAdd(trackObjectsAdded)
-        urisToAdd.forEach(uri => counter.set(uri, 1))
     }
     // add context menu back
     contextMenu.register()
