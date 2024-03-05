@@ -38,39 +38,14 @@ export async function resync() {
     const urisToAdd = []
     // add tracks that are in map but not in database
     for (const localUri of counter.keys()) {
-        if (!allDatabaseTracks.includes(localUri)) {
+        if (allDatabaseTracks.includes(localUri)) {
+            console.log(localUri)
             urisToAdd.push(localUri)
         }
     }
     // add Tracks to database
     const trackObjects = await getTrackObject(urisToAdd)
     await db.webTracks.bulkAdd(trackObjects)
-
-    // // filter tracks that are in database, but not local
-    // const tracksToDelete = allDatabaseTracks.filter(track => !urisToSync.includes(track.uri));
-    // // check if anything needs to be removed
-    // if (tracksToDelete.length >= 1) {
-    //     // delete tracks not in the URI array
-    //     for (const track of tracksToDelete) {
-    //         await db.webTracks.delete(track.uri);
-    //     }
-    // }
-    // // add missing tracks to database
-    // // collect all uris missing
-    // const urisToAdd1 = []
-    // // handle each track
-    // for (const uri of urisToSync) {
-    //     // check if already in database
-    //     const exists = allDatabaseTracks.some(track => track.uri === uri);
-    //     if (!exists && uri) {
-    //         urisToAdd1.push(uri)
-    //     }
-    // }
-    // const trackObjects = await getTrackObject(urisToAdd1.flat())
-    //
-    // if (trackObjects) {
-    //     await db.webTracks.bulkAdd(trackObjects)
-    // }
 }
 
 /**
@@ -88,6 +63,8 @@ export const counter = new Map()
  */
 function initializeCounter(urisToSync) {
     for (const uri of urisToSync) {
+        // check if uri exists
+        if (!uri) continue
         // check if already exists
         if (counter.has(uri)) {
             // increase value

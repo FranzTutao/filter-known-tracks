@@ -19,7 +19,6 @@ export async function getAllTracks() {
         }
     }
     userContentTracks.push(await getLikedTracks());
-    console.log("Number of songs in your Library including duplicates and dead Tracks: " + (userContentTracks.flat()).length)
     return userContentTracks.flat();
 }
 

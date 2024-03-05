@@ -6,6 +6,7 @@
 // console.log(await createNewPlaylist("Hello World"));
 
 
+import {counter, db} from "./database.js";
 
 /**
  * gets trackObjects using their uri
@@ -53,8 +54,6 @@ export async function getTrackObject(uris) {
             if (trackObject) trackObjects.push(trackObject);
         }
         return trackObjects
-
-
         // handle String
     } else {
         // get trackId from uri
@@ -83,6 +82,7 @@ export async function makeTrackObject(response) {
         console.warn("Error while getting TrackObject: ")
         console.warn(response)
         Spicetify.showNotification("Error while getting TrackObject")
+        counter.delete(response.uri)
         return null
     }
     // get artist name as array of strings
@@ -171,4 +171,90 @@ export interface Track {
     name: string
     artist: Array<string>
     duration: number
+}
+
+/**
+ * returns name of playlist as String
+ * @param uri
+ */
+export async function getPlaylistTitle(uri) {
+    const metadata = await Spicetify.Platform.PlaylistAPI.getMetadata(uri)
+    return metadata.name
+}
+
+/**
+ *
+ * @param trackObject
+ * @returns true if the isrc is in the database
+ */
+export async function compareIsrc(trackObject) {
+    const uri = trackObject.uri
+    const isrc = trackObject.isrc
+    // check if needed values exist
+    if (!uri || !isrc) return false
+    const databaseTrackObject = await db.webTracks.get(uri)
+    // check if needed trackObject exists
+    if (!databaseTrackObject?.isrc) return false
+    return databaseTrackObject.isrc === isrc
+
+}
+
+/**
+ * context menu
+ */
+export const contextMenu = new Spicetify.ContextMenu.Item(
+    "Generate filtered playlist",
+    onPlaylistContextMenu,
+    (uri) => Spicetify.URI.fromString(uri[0]).type == Spicetify.URI.Type.PLAYLIST_V2,
+    "enhance",
+    false,
+)
+
+/**
+ * triggered on context menu; starts comparing
+ * @param uris
+ */
+export async function onPlaylistContextMenu(uris) {
+    // remove function to call this again while processing
+    contextMenu.deregister()
+    // check uris
+    if (!uris) return
+    const urisToAdd = []
+    const trackObjectsAdded = []
+    for (const playlistUri of uris) {
+        // get tracks that have to be compared to the database
+        const tracksToCompare = await getTracksFromContextMenu(playlistUri)
+        // handle error
+        if (!tracksToCompare) {
+            console.log("Unable to fetch Tracks of this playlist.")
+            console.log("Tracks to Compare to: " + tracksToCompare)
+            Spicetify.showNotification("Unable to fetch Tracks of this playlist, please retry")
+            return
+        }
+        // compare playlist and map/ database
+        for (const trackUri of tracksToCompare) {
+            // compare uri to map
+            if (counter.has(trackUri)) continue
+            // compare isrc of Track to database
+            const trackObject = await getTrackObject(trackUri)
+            if (await compareIsrc(trackObject)) continue
+            // store track to add
+            urisToAdd.push(trackUri)
+            // store trackObject to add
+            trackObjectsAdded.push(trackObject)
+        }
+        // create playlist
+        const playlistName = await getPlaylistTitle(playlistUri)
+        const createdPlaylistUri = await createNewPlaylist(playlistName)
+        // add Tracks to playlist
+        addTracksToPlaylist(createdPlaylistUri, urisToAdd)
+        // add added tracks to database and map
+        db.webTracks.bulkAdd(trackObjectsAdded)
+        urisToAdd.forEach(uri => counter.set(uri, 1))
+    }
+    // add context menu back
+    contextMenu.register()
+    // finish operation
+    console.log("Operation complete")
+    Spicetify.showNotification("Operation complete")
 }

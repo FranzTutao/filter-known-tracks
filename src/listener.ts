@@ -14,7 +14,7 @@ export async function trackEventHandler(event) {
         // check if needed content exists
         if (!event.data?.uris || event.data.uris.isEmpty) return console.warn("Unable to get relevant tracks");
         const uris = event.data.uris
-        await addTracks(uris)
+        await addTracksToDatabase(uris)
     }
     // check if its desired event
     else if (event.data.operation === "remove") {
@@ -67,7 +67,7 @@ export async function likedEventHandler(event) {
         // check if needed content exists
         if (!event.data?.uris || event.data.uris.isEmpty) return console.warn("Unable to get relevant tracks");
         const uris = event.data.uris
-        await addTracks(uris)
+        await addTracksToDatabase(uris)
     }
     // check if its desired event
     else if (event.data.operation === "remove") {
@@ -88,7 +88,7 @@ export async function likedEventHandler(event) {
  * add tracks to database
  * @param uris as Array
  */
-export async function addTracks(uris) {
+export async function addTracksToDatabase(uris) {
     // check if uris has entries
     if (uris.length <= 0) return
     const urisToAdd = []
