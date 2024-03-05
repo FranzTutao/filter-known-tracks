@@ -15,8 +15,9 @@ Check out [Spicetify's docs](https://spicetify.app/docs/development/spicetify-cr
 ## ToDo
 
 - allow usage on self owned playlists
-- improve visual feedback in spicetify
 - add playlists to a folder (maybe user input specific)
+- fix adding dead tracks as these are not saved in the map nor database which causes de-sync
+- find solution for how to handle library changes while re-syncing
 - make marketplace ready/ suitable
 - add image to playlist
 - add description to playlist
