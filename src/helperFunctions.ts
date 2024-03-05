@@ -218,7 +218,11 @@ export async function onPlaylistContextMenu(uris) {
     // remove function to call this again while processing
     contextMenu.deregister()
     // check uris
-    if (!uris) return
+    if (!uris) {
+        console.log("Event failed to get the Playlist")
+        Spicetify.showNotification("Event failed to get the Playlist")
+        return
+    }
     const urisToAdd = []
     const trackObjectsAdded = []
     for (const playlistUri of uris) {
@@ -229,9 +233,12 @@ export async function onPlaylistContextMenu(uris) {
             console.log("Unable to fetch Tracks of this playlist.")
             console.log("Tracks to Compare to: " + tracksToCompare)
             Spicetify.showNotification("Unable to fetch Tracks of this playlist, please retry")
+            contextMenu.register()
             return
         }
+        Spicetify.showNotification("Processing, please wait")
         // compare playlist and map/ database
+        let i = 1
         for (const trackUri of tracksToCompare) {
             // compare uri to map
             if (counter.has(trackUri)) continue
@@ -242,6 +249,11 @@ export async function onPlaylistContextMenu(uris) {
             urisToAdd.push(trackUri)
             // store trackObject to add
             trackObjectsAdded.push(trackObject)
+            // give indicators
+            if (Math.round(tracksToCompare.length / 4) === i) Spicetify.showNotification("1/4 of tracks processed")
+            if (Math.round(tracksToCompare.length / 2) === i) Spicetify.showNotification("1/2 of tracks processed")
+            if (Math.round(tracksToCompare.length / 4) * 3 === i) Spicetify.showNotification("3/4 of tracks processed")
+            i++
         }
         // create playlist
         const playlistName = await getPlaylistTitle(playlistUri)
@@ -253,5 +265,5 @@ export async function onPlaylistContextMenu(uris) {
     contextMenu.register()
     // finish operation
     console.log("Operation complete")
-    Spicetify.showNotification("Operation complete")
+    Spicetify.showNotification("Operation complete, have fun")
 }
