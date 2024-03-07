@@ -1,33 +1,31 @@
 import {getTracksFromPlaylist, isUserPlaylist} from "./helperFunctions.js";
 
 /**
- *  function that gets all tracks a user has and returns them as Array
- *  @return tracks as Array
+ *  get all local tracks as uri
+ *  @return uris as Array
  */
 export async function getAllTracks() {
     // initialize Array
-    const userContentTracks = [];
-    // get content as const to satisfy await
+    const localUris = [];
     const userContents = await Spicetify.Platform.RootlistAPI.getContents();
+    console.log("User content loaded")
     // handle each item (can be playlist or folder)
     for (const item of userContents.items) {
-        // get tracks as const to satisfy await
-        const tracks = await processItem(item);
-        // add tracks to Array
-        if (tracks !== undefined) {
-            userContentTracks.push(tracks);
+        const uri = await processItem(item);
+        // add uri to Array
+        if (uri !== undefined) {
+            localUris.push(uri);
         }
     }
-    userContentTracks.push(await getLikedTracks());
-    return userContentTracks.flat();
+    localUris.push(await getLikedTracks());
+    return localUris.flat();
 }
 
 /**
- * helper function to get all tracks from user
+ * get uris from folder or playlist recursively
  * @param item (playlist or folder)
- * @return tracks as Array?
+ * @return track uris as Array
  */
-// @ts-ignore
 async function processItem(item) {
     // handle playlist
     if (item.type == "playlist") {
@@ -35,15 +33,15 @@ async function processItem(item) {
         return await getTracksFromPlaylist(item.uri);
     } else if (item.type == "folder") {
         // create Array for folder that stores all its contents
-        const folderTracks = [];
+        const folderUris = [];
         // loop through folder contents
         for (const nestedItem of item.items) {
             // handle folder contents
-            const tracks = await processItem(nestedItem);
-            folderTracks.push(tracks);
+            const uris = await processItem(nestedItem);
+            folderUris.push(uris);
         }
         // return folder contents
-        return folderTracks.flat();
+        return folderUris.flat();
     } else {
         console.warn("Something other then Playlist or Folder got found");
     }
@@ -51,7 +49,7 @@ async function processItem(item) {
 
 /**
  * get all liked tracks
- * @returns liked tracks as Array
+ * @returns uris as Array
  */
 async function getLikedTracks() {
     const liked = await Spicetify.Platform.LibraryAPI.getTracks({offset: 0, limit: -1});

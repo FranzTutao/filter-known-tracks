@@ -2,9 +2,8 @@ import {counter, db} from "./database.js";
 import {getTrackObject, getTracksFromPlaylist} from "./helperFunctions.js";
 
 /**
- * get added/ deleted tracks and add/ remove from db
+ * get added/ deleted tracks and add/ remove them from the database nad map
  * @param event
- *
  */
 export async function trackEventHandler(event) {
     // check if needed content exists
@@ -35,7 +34,6 @@ export async function trackEventHandler(event) {
 /**
  * gets passive deleted tracks and removes them from db
  * @param event
- *
  */
 export async function playlistEventHandler(event) {
     // check if needed content exists
@@ -63,7 +61,6 @@ export async function playlistEventHandler(event) {
 /**
  * get added/ deleted liked tracks and adds/ removes these from db
  * @param event
- *
  */
 export async function likedEventHandler(event) {
     // check if needed content exists
@@ -91,7 +88,7 @@ export async function likedEventHandler(event) {
 }
 
 /**
- * add tracks to database
+ * add tracks to database and map
  * @param uris as Array
  */
 export async function addTracksToDatabase(uris) {

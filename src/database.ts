@@ -2,7 +2,9 @@ import Dexie, {Table} from "dexie";
 import {getTrackObject, Track} from "./helperFunctions.js";
 import {getAllTracks} from "./getInitialTracks.js";
 
-
+/**
+ * indexedDB storing track objects with uri as index
+ */
 export const db = new (class extends Dexie {
     webTracks!: Table<Track>
 
@@ -17,16 +19,15 @@ export const db = new (class extends Dexie {
 
 /**
  * resync database
- *
  */
 export async function resync() {
+    Spicetify.showNotification("ReSync started")
     // get local track uris
-    let urisToSync = await getAllTracks()
+    const urisToSync = await getAllTracks()
     // initialize counter
     initializeCounter(urisToSync)
     // get all database tracks
     const allDatabaseTracks = await db.webTracks.toArray();
-
     // remove tracks that are in database but not in map
     for (const trackFromDatabase of allDatabaseTracks) {
         const uriFromDatabase = trackFromDatabase.uri
@@ -39,7 +40,6 @@ export async function resync() {
     // add tracks that are in map but not in database
     for (const localUri of counter.keys()) {
         if (allDatabaseTracks.includes(localUri)) {
-            console.log(localUri)
             urisToAdd.push(localUri)
         }
     }
@@ -49,7 +49,7 @@ export async function resync() {
 }
 
 /**
- * counter to store how many times a track is in library
+ * counter to store amount of times a track is in local library/ database
  *
  * key is irc
  *
@@ -58,10 +58,12 @@ export async function resync() {
 export const counter = new Map()
 
 /**
- *
- * @param urisToSync
+ * initialize counter on startup
+ * @param urisToSync as Array
  */
 function initializeCounter(urisToSync) {
+    // check if uris has entries
+    if (urisToSync.length <= 0) return
     for (const uri of urisToSync) {
         // check if uri exists
         if (!uri) continue

@@ -4,15 +4,15 @@ import {contextMenu} from "./helperFunctions.js";
 
 
 async function main() {
-    // await if everything necessary is loaded
+    // await if messages can be send
     while (!Spicetify?.showNotification) {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     // Show message on start.
     Spicetify.showNotification("Hello Franz3, welcome back <3");
-    // await for content to load
+    // await if everything necessary is loaded
     while (!Spicetify?.Platform?.PlaylistAPI?.getPlaylist) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(res => Spicetify.Events.webpackLoaded.on(res))
     }
     // resync database and map
     await resync()
