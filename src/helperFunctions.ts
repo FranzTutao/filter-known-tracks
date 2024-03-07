@@ -176,13 +176,27 @@ export interface Track {
  */
 export async function getPlaylistInformation(uri) {
     const metadata = await Spicetify.Platform.PlaylistAPI.getMetadata(uri)
-    const playlistName = metadata?.name
-    const creatorName = metadata?.owner?.displayName
-    const playlistImageId = (metadata?.images[0]?.url).split(":")[2];
+    let playlistName = metadata?.name
+    let creatorName = metadata?.owner?.displayName
+    // get playlistImage ID instead of uri
+    // e.g. spotify:mosaic:foo:bar:foo:bar -> foo:bar:foo:bar
+    let playlistImageId = (metadata?.images[0]?.url).split(":").slice(2).join(":");
     // give failure feedback
     if (!playlistName) Spicetify.showNotification("Failed to get Playlist name, please set manually")
     if (!creatorName) Spicetify.showNotification("Failed to get Playlist creator name, please set manually")
     if (!playlistImageId) Spicetify.showNotification("Failed to get Playlist image, please set manually")
+    // handle edge case where title is an empty String
+    if (playlistName === "") {
+        playlistName = "Error getting name"
+    }
+    // handle empty creator
+    if (creatorName === "") {
+        creatorName = "Error getting name"
+    }
+    // handle empty image
+    if (playlistImageId === "") {
+        playlistImageId = undefined
+    }
     return {
         "playlistName": playlistName ?? "Error getting name",
         "creatorName": creatorName ?? "Error getting name",
