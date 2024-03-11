@@ -91,7 +91,7 @@ export async function likedEventHandler(event) {
  * add tracks to database and map
  * @param uris as Array
  */
-export async function addTracksToDatabase(uris) {
+export async function addTracksToDatabase(uris: Array<any>) {
     // check if uris has entries
     if (uris.length <= 0) return
     const urisToAdd = []

@@ -1,6 +1,6 @@
 import {likedEventHandler, playlistEventHandler, trackEventHandler} from "./listener.js";
 import {resync} from "./database.js";
-import {contextMenu} from "./helperFunctions.js";
+import {contextMenu, customFetch} from "./helperFunctions.js";
 
 
 async function main() {

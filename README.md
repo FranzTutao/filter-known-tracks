@@ -12,9 +12,17 @@ Check out [Spicetify's docs](https://spicetify.app/docs/development/spicetify-cr
 
 ``spicetify watch -le``
 
+## Function
+
+Creates a new playlist which only contains songs of the different/ foreign playlist that are not in your Spotify library
+
+- will need to synchronize your Spotify library on startup, before it can be used
+- will put that newly created playlist in a folder called "New Songs" in the root directory
+- will copy image and name of the old playlist and mention the user who created the old playlist in the description
+-
+
 ## ToDo
 
-- fix startup problem
 - allow usage on self owned playlists
 - find solution for how to handle library changes while re-syncing
 - implement own fetch that allows up to 100 track requests instead of the current 45
@@ -26,6 +34,12 @@ Check out [Spicetify's docs](https://spicetify.app/docs/development/spicetify-cr
 - add blacklist and whitelist for playlists
 - allow specific path where playlist is put
 - allow custom description
+
+## Known bugs:
+
+- fix startup problem (only starts working on third reload)
+- artwork doesn't work for "introoutro" anymore
+- fetching in batches over 50 doesn't work (theoretical limit is 100)
 
 ## Useful Links
 

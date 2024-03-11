@@ -31,7 +31,7 @@ export async function getTrackObject(uris) {
         for (let i = 0; i < trackIds.size; i += 45) {
             // format into String seperated by comma
             const formattedTrackIds = [...trackIds].slice(i, i + 45).join(",")
-            const singeResponse = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)
+            const singeResponse = await customFetch(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)
             // save tracks in an Array
             bulkResponse.push(singeResponse.tracks)
         }
@@ -76,7 +76,9 @@ export async function makeTrackObject(response) {
         console.warn("Error while getting TrackObject: ")
         console.warn(response)
         Spicetify.showNotification("Error while getting TrackObject")
-        counter.delete(response.uri)
+        if (response?.uri) {
+            counter.delete(response.uri)
+        }
         return null
     }
     // get artist name as Array of Strings
@@ -181,10 +183,25 @@ export async function getPlaylistInformation(uri) {
     // get playlistImage ID instead of uri
     // e.g. spotify:mosaic:foo:bar:foo:bar -> foo:bar:foo:bar
     let playlistImageId = (metadata?.images[0]?.url).split(":").slice(2).join(":");
+    if (!playlistImageId) {
+        playlistImageId = (metadata?.images[0]?.url).split("/").slice(4).join("/");
+    }
     // give failure feedback
-    if (!playlistName) Spicetify.showNotification("Failed to get Playlist name, please set manually")
-    if (!creatorName) Spicetify.showNotification("Failed to get Playlist creator name, please set manually")
-    if (!playlistImageId) Spicetify.showNotification("Failed to get Playlist image, please set manually")
+    if (!playlistName) {
+        console.warn("Failed to get Playlist name: ")
+        console.log(metadata)
+        Spicetify.showNotification("Failed to get Playlist name, please set manually")
+    }
+    if (!creatorName) {
+        console.warn("Failed to get Playlist creator name: ")
+        console.log(metadata)
+        Spicetify.showNotification("Failed to get Playlist creator name, please set manually")
+    }
+    if (!playlistImageId) {
+        console.warn("Failed to get Playlist image: ")
+        console.log(metadata)
+        Spicetify.showNotification("Failed to get Playlist image, please set manually")
+    }
     // handle edge case where title is an empty String
     if (playlistName === "") {
         playlistName = "Error getting name"
@@ -349,4 +366,55 @@ export async function getFolder(folderName) {
         return
     }
     return createdFolder.uri
+}
+
+/**
+ * implementation of CosmosAsync with longer timeout
+ * @param url
+ * @param recursiveCounter
+ */
+export async function customFetch(url, recursiveCounter = 0) {
+    // set timeout to 30 seconds
+    const timeout = 1000 * 30
+    const urlObj = new URL(url);
+    const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
+    const isWebAPI = urlObj.hostname === "api.spotify.com";
+    const Authorization = `Bearer ${Spicetify.Platform.AuthorizationAPI.getState().token.accessToken}`;
+    let injectedHeaders = {};
+    if (isWebAPI) injectedHeaders = {Authorization};
+    if (isSpClientAPI) {
+        injectedHeaders = {
+            Authorization,
+            "Spotify-App-Version": Spicetify.Platform.version,
+            "App-Platform": Spicetify.Platform.PlatformData.app_platform
+        };
+    }
+    const requestOptions = {
+        method: "GET",
+        headers: injectedHeaders
+    }
+    // send api request
+    const fetchPromise = fetch(url, requestOptions)
+    // make promise that will reject after timeout
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+            reject(new Error("Request timed out"))
+        }, timeout)
+    })
+    // return the promise
+    return Promise.race([fetchPromise, timeoutPromise]).then(response => {
+        // return if request is successful
+        if (response.ok) {
+            return response.json()
+        } else {
+            // try recursively three times and return undefined if request still failed
+            if (recursiveCounter === 3) {
+                console.warn("Error while fetching data from the Spotify API")
+                return
+            }
+            setTimeout(() => {
+            }, 1000)
+            return customFetch(url, recursiveCounter++)
+        }
+    })
 }
