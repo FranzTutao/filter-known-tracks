@@ -34,6 +34,7 @@ Creates a new playlist which only contains songs of the different/ foreign playl
 - add blacklist and whitelist for playlists
 - allow specific path where playlist is put
 - allow custom description
+- toggle between all and self-owned tracks
 
 ## Known bugs:
 

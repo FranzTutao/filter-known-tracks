@@ -31,7 +31,7 @@ export async function getTrackObject(uris) {
         for (let i = 0; i < trackIds.size; i += 45) {
             // format into String seperated by comma
             const formattedTrackIds = [...trackIds].slice(i, i + 45).join(",")
-            const singeResponse = await customFetch(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)
+            const singeResponse = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)
             // save tracks in an Array
             bulkResponse.push(singeResponse.tracks)
         }
@@ -126,8 +126,10 @@ export function addTracksToPlaylist(playlistUri, trackUri) {
  * @returns uris as Array or undefined
  */
 export async function getTracksFromContextMenu(playlistUri) {
+    // get playlistItem
+    const playlistItem = await Spicetify.Platform.PlaylistAPI.getPlaylist(playlistUri);
     // stop if its users own playlist
-    if (await isUserPlaylist(playlistUri)) return;
+    if (await isUserPlaylist(playlistItem)) return;
     // get uris of tracks from playlist
     const uris = await getTracksFromPlaylist(playlistUri);
     // remove undefined entries and return Array?
@@ -149,13 +151,13 @@ export async function getTracksFromPlaylist(playlistUri) {
 }
 
 /**
- * check if the provided playlist belongs to the user (true) or not (false)
- * @param uri
+ * check if the provided playlist belongs to the user (true) or not (false) and has tracks in it
+ * @param trackItem
  * @returns boolean
  */
-export async function isUserPlaylist(uri) {
-    const playlist = await Spicetify.Platform.PlaylistAPI.getPlaylist(uri);
-    return await (playlist.metadata.isCollaborative || playlist.metadata.isOwnedBySelf || playlist.metadata.canAdd) || playlist.metadata.totalLength <= 0;
+export async function isUserPlaylist(trackItem) {
+    if (!trackItem) return false
+    return await (trackItem.isCollaborative || trackItem.isOwnedBySelf || trackItem.canAdd) && trackItem.totalLength > 0;
 }
 
 /**
@@ -412,6 +414,7 @@ export async function customFetch(url, recursiveCounter = 0) {
                 console.warn("Error while fetching data from the Spotify API")
                 return
             }
+            // wait 1 second to not spam
             setTimeout(() => {
             }, 1000)
             return customFetch(url, recursiveCounter++)

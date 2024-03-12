@@ -29,7 +29,7 @@ export async function getAllTracks() {
 async function processItem(item) {
     // handle playlist
     if (item.type == "playlist") {
-        if (!await isUserPlaylist(item.uri)) return;
+        if (!await isUserPlaylist(item)) return;
         return await getTracksFromPlaylist(item.uri);
     } else if (item.type == "folder") {
         // create Array for folder that stores all its contents

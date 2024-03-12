@@ -1,10 +1,10 @@
 import {likedEventHandler, playlistEventHandler, trackEventHandler} from "./listener.js";
 import {resync} from "./database.js";
-import {contextMenu, customFetch} from "./helperFunctions.js";
+import {contextMenu} from "./helperFunctions.js";
 
 
 async function main() {
-    // await if messages can be send
+    // await if messages can be sent
     while (!Spicetify?.showNotification) {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -12,7 +12,7 @@ async function main() {
     Spicetify.showNotification("Hello Franz3, welcome back <3");
     // await if everything necessary is loaded
     while (!Spicetify?.Platform?.PlaylistAPI?.getPlaylist) {
-        await new Promise(res => Spicetify.Events.webpackLoaded.on(res))
+        await new Promise(res => Spicetify.Events.platformLoaded.on(res))
     }
     // resync database and map
     await resync()
