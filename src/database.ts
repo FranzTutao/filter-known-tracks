@@ -26,11 +26,11 @@ export async function resync() {
     const urisToSync = await getAllTracks()
     // initialize counter
     initializeCounter(urisToSync)
-    // get all database tracks
-    const allDatabaseTracks = await db.webTracks.toArray();
+    // get all database trackObjects
+    const allDatabaseTrackObjects = await db.webTracks.toArray()
+    const allDatabaseUris = allDatabaseTrackObjects.map(trackObject => trackObject.uri)
     // remove tracks that are in database but not in map
-    for (const trackFromDatabase of allDatabaseTracks) {
-        const uriFromDatabase = trackFromDatabase.uri
+    for (const uriFromDatabase of allDatabaseUris) {
         if (!counter.has(uriFromDatabase)) {
             // delete Track
             await db.webTracks.delete(uriFromDatabase)
@@ -39,9 +39,10 @@ export async function resync() {
     const urisToAdd = []
     // add tracks that are in map but not in database
     for (const localUri of counter.keys()) {
-        if (allDatabaseTracks.includes(localUri)) {
-            urisToAdd.push(localUri)
-        }
+        // scip tracks that are in map and database
+        if (allDatabaseUris.includes(localUri)) continue
+        urisToAdd.push(localUri)
+
     }
     // add Tracks to database
     const trackObjects = await getTrackObject(urisToAdd)

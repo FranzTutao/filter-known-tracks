@@ -38,7 +38,7 @@ Creates a new playlist which only contains songs of the different/ foreign playl
 
 ## Known bugs:
 
-- fix startup problem (only starts working on third reload)
+- fix resync at startup (where map and db sync)
 - artwork doesn't work for "introoutro" anymore
 - fetching in batches over 50 doesn't work (theoretical limit is 100)
 

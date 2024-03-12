@@ -116,6 +116,12 @@ export function addTracksToPlaylist(playlistUri, trackUri) {
     const uniqueTrackUri = [...new Set(trackUri)]
     // make trackUri an Array
     const trackUris = [uniqueTrackUri].flat();
+    // check if it has tracks in it
+    if (trackUri.length === 0) {
+        Spicetify.showNotification("No tracks to add to playlist found")
+        console.warn("No tracks to add to playlist found")
+        return
+    }
     // add to specified playlist
     Spicetify.Platform.PlaylistAPI.add(playlistUri, trackUris, {});
 }
