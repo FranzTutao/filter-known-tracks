@@ -35,11 +35,10 @@ Creates a new playlist which only contains songs of the different/ foreign playl
 - allow specific path where playlist is put
 - allow custom description
 - toggle between all and self-owned tracks
+- add option to make playlist with only tracks that are also in your library to find common tracks
 
 ## Known bugs:
 
-- fix resync at startup (where map and db sync)
-- artwork doesn't work for "introoutro" anymore
 - fetching in batches over 50 doesn't work (theoretical limit is 100)
 
 ## Useful Links
