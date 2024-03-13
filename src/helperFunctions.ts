@@ -126,10 +126,6 @@ export function addTracksToPlaylist(playlistUri, trackUri) {
  * @returns uris as Array or undefined
  */
 export async function getTracksFromContextMenu(playlistUri) {
-    // get playlistItem
-    const playlistItem = await Spicetify.Platform.PlaylistAPI.getPlaylist(playlistUri);
-    // stop if its users own playlist
-    if (await isUserPlaylist(playlistItem)) return;
     // get uris of tracks from playlist
     const uris = await getTracksFromPlaylist(playlistUri);
     // remove undefined entries and return Array?
@@ -152,12 +148,15 @@ export async function getTracksFromPlaylist(playlistUri) {
 
 /**
  * check if the provided playlist belongs to the user (true) or not (false) and has tracks in it
- * @param trackItem
+ * @param item (either playlistItem or playlist uri)
  * @returns boolean
  */
-export async function isUserPlaylist(trackItem) {
-    if (!trackItem) return false
-    return await (trackItem.isCollaborative || trackItem.isOwnedBySelf || trackItem.canAdd) && trackItem.totalLength > 0;
+export async function isUserPlaylist(item) {
+    if (!item) return false
+    // store the playlistItem
+    const playlistItem = typeof item !== "string" ? item :
+        await Spicetify.Platform.PlaylistAPI.getPlaylist(item).then(response => response.metadata);
+    return await (playlistItem.isCollaborative || playlistItem.isOwnedBySelf || playlistItem.canAdd) && playlistItem.totalLength > 0;
 }
 
 /**
@@ -270,7 +269,7 @@ export async function onPlaylistContextMenu(uris) {
         contextMenu.register()
         return
     }
-    const trackUrisToAdd = []
+    // loop through it as uris could be more than only one
     for (const playlistUri of uris) {
         // get tracks that have to be compared to the database
         const tracksToCompare = await getTracksFromContextMenu(playlistUri)
@@ -283,22 +282,13 @@ export async function onPlaylistContextMenu(uris) {
             return
         }
         Spicetify.showNotification("Processing, please wait")
-        // variable for time indication
-        let i = 0
-        // compare playlist and map/ database
-        for (const trackUri of tracksToCompare) {
-            // compare uri to map
-            if (counter.has(trackUri)) continue
-            // compare isrc of Track to database
-            const trackObject = await getTrackObject(trackUri)
-            if (await compareIsrc(trackObject)) continue
-            // store track to add
-            trackUrisToAdd.push(trackUri)
-            // give rough time indicators
-            i++
-            if (Math.floor(tracksToCompare.length / 4) === i) Spicetify.showNotification("1/4 of tracks processed")
-            if (Math.floor(tracksToCompare.length / 2) === i) Spicetify.showNotification("1/2 of tracks processed")
-            if (Math.floor(tracksToCompare.length / 4) * 3 === i) Spicetify.showNotification("3/4 of tracks processed")
+        let trackUrisToAdd
+        if (await isUserPlaylist(playlistUri)) {
+            // compare foreign playlist
+            trackUrisToAdd = await compareForSelfOwnedPlaylist(tracksToCompare)
+        } else {
+            // compare self owned playlist
+            trackUrisToAdd = await compareForForeignPlaylist(tracksToCompare)
         }
         // handle case where the new playlist would be empty
         if (trackUrisToAdd.length <= 0) {
@@ -438,4 +428,58 @@ export async function customFetch(url, recursiveCounter = 0) {
             return customFetch(url, ++recursiveCounter)
         }
     })
+}
+
+/**
+ * compare tracks when coming from a foreign playlist
+ * @param tracksToCompare
+ * @returns null or Array of uri's
+ */
+async function compareForForeignPlaylist(tracksToCompare) {
+    const trackUrisToAdd = []
+    // variable for time indication
+    let i = 0
+    // compare playlist and map/ database
+    for (const trackUri of tracksToCompare) {
+        // compare uri to map
+        if (counter.has(trackUri)) continue
+        // compare isrc of Track to database
+        const trackObject = await getTrackObject(trackUri)
+        if (await compareIsrc(trackObject)) continue
+        // store track to add
+        trackUrisToAdd.push(trackUri)
+        // give rough time indicators
+        i++
+        if (Math.floor(tracksToCompare.length / 4) === i) Spicetify.showNotification("1/4 of tracks processed")
+        if (Math.floor(tracksToCompare.length / 2) === i) Spicetify.showNotification("1/2 of tracks processed")
+        if (Math.floor(tracksToCompare.length / 4) * 3 === i) Spicetify.showNotification("3/4 of tracks processed")
+    }
+    return trackUrisToAdd
+}
+
+/**
+ * compare tracks when coming from a self owned playlist (only compares uri, not isrc)
+ * @param tracksToCompare
+ * @returns Array of uri's to add
+ */
+async function compareForSelfOwnedPlaylist(tracksToCompare) {
+    const trackUrisToAdd = []
+    // variable for time indication
+    let i = 0
+    // compare playlist and map/ database
+    for (const trackUri of tracksToCompare) {
+        // compare uri to map (if we got it two times in map)
+        if (!(counter.get(trackUri) <= 1)) continue
+        // compare isrc of Track to database
+        const trackObject = await getTrackObject(trackUri)
+        if (await compareIsrc(trackObject)) continue
+        // store track to add
+        trackUrisToAdd.push(trackUri)
+        // give rough time indicators
+        i++
+        if (Math.floor(tracksToCompare.length / 4) === i) Spicetify.showNotification("1/4 of tracks processed")
+        if (Math.floor(tracksToCompare.length / 2) === i) Spicetify.showNotification("1/2 of tracks processed")
+        if (Math.floor(tracksToCompare.length / 4) * 3 === i) Spicetify.showNotification("3/4 of tracks processed")
+    }
+    return trackUrisToAdd
 }
