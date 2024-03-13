@@ -468,7 +468,7 @@ async function compareForSelfOwnedPlaylist(tracksToCompare) {
     let i = 0
     // compare playlist and map/ database
     for (const trackUri of tracksToCompare) {
-        // compare uri to map (if we got it two times in map)
+        // compare uri to map (if we got it two times in map we will skip it)
         if (!(counter.get(trackUri) <= 1)) continue
         // compare isrc of Track to database
         const trackObject = await getTrackObject(trackUri)

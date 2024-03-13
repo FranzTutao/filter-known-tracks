@@ -19,6 +19,7 @@ Creates a new playlist which only contains songs of the different/ foreign playl
 - will need to synchronize your Spotify library on startup, before it can be used
 - will put that newly created playlist in a folder called "New Songs" in the root directory
 - will copy image and name of the old playlist and mention the user who created the old playlist in the description
+- if used on self-owned playlist it excludes that playlist from your library (only uri comparison, no isrc)
 
 It took ~12 minutes 30 seconds for a playlist with ~5600 tracks, where ~5360 were new tracks, to finish
 
