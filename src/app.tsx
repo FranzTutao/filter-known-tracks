@@ -2,14 +2,14 @@ import {likedEventHandler, playlistEventHandler, trackEventHandler} from "./list
 import {resync} from "./database.js";
 import {contextMenu} from "./helperFunctions.js";
 
-
+// TODO why does this have to be a .tsx file?!
 async function main() {
     // await if messages can be sent
     while (!Spicetify?.showNotification) {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
-    // Show message on start.
-    Spicetify.showNotification("Hello Franz3, welcome back <3");
+    // Show message on start
+    Spicetify.showNotification("Hello Franz3, welcome back <3"); // todo UWU
     // await if everything necessary is loaded
     while (!Spicetify?.Platform?.PlaylistAPI?.getPlaylist) {
         await new Promise(res => Spicetify.Events.platformLoaded.on(res))

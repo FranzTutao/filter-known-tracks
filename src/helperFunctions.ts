@@ -2,12 +2,13 @@ import {counter, db} from "./database.js";
 
 /**
  * gets trackObjects using their uri
- * @param uris as String or Array
+ * @param uris as String or Array<string>
  * @returns Array of trackObjects
  */
+// TODO please type parameters
 export async function getTrackObject(uris) {
     // check if uris exists
-    if (!uris) {
+    if (!uris) { // TODO this can fire at wrong times, are you checking for explicit null or empty string? '!"" == true', whereas empty array: ![] == false
         console.warn("Uri passed to getTrackObject is faulty: " + uris)
         Spicetify.showNotification("Uri passed to getTrackObject is faulty")
         return null
@@ -36,7 +37,7 @@ export async function getTrackObject(uris) {
     const bulkResponse = await Promise.all(promises)
     // TODO() handle faulty bulkResponse
     if (!bulkResponse) {
-        console.warn("Empty bulk api response")
+        console.warn("Empty bulk api response") // TODO uwu
         return null
     }
     for (const response of bulkResponse) {
@@ -58,10 +59,11 @@ export async function makeTrackObject(responses) {
     // store newly created trackObjects
     const trackObjects = []
     // make response always an array
-    const objects = Array.isArray(responses) ? responses : [responses];
+    const objects = Array.isArray(responses) ? responses : [responses]; // TODO ?????
 
     for (const response of objects) {
         // return null if objects are not present
+        if (!response) return
         if (!response?.uri || !response?.external_ids?.isrc ||
             !response?.name || !response?.artists || !response?.duration_ms) {
             console.warn("Error while getting TrackObject: ")
@@ -126,14 +128,14 @@ export function addTracksToPlaylist(playlistUri, trackUri) {
  * @returns uris as Array or undefined
  */
 export async function getTracksFromContextMenu(playlistUri) {
-    // get playlistItem
+    // get playlistItem TODO again, this commenting style is not very beneficial. Please document the methods more and don't add one liners to every single line that don't add anything of value really.
     const playlistItem = await Spicetify.Platform.PlaylistAPI.getPlaylist(playlistUri);
     // stop if its users own playlist
     if (await isUserPlaylist(playlistItem)) return;
     // get uris of tracks from playlist
     const uris = await getTracksFromPlaylist(playlistUri);
     // remove undefined entries and return Array?
-    return [...uris].flat();
+    return [...uris].flat(); // TODO what are you doing with flat() here?
 }
 
 /**
@@ -151,13 +153,13 @@ export async function getTracksFromPlaylist(playlistUri) {
 }
 
 /**
- * check if the provided playlist belongs to the user (true) or not (false) and has tracks in it
+ * check if the provided playlist belongs to the user (true) or not (false) and has tracks in it TODO so what if it belongs to the user (true) and has tracks in it? We cant differentiate whether it belongs to the user and theres tracks in it or not?
  * @param trackItem
  * @returns boolean
  */
-export async function isUserPlaylist(trackItem) {
-    if (!trackItem) return false
-    return await (trackItem.isCollaborative || trackItem.isOwnedBySelf || trackItem.canAdd) && trackItem.totalLength > 0;
+export async function isUserPlaylist(trackItem) { // TODO type
+    if (!trackItem) return false // TODO ???
+    return await (trackItem.isCollaborative || trackItem.isOwnedBySelf || trackItem.canAdd) && trackItem.totalLength > 0; // TODO so we could still return false, even though it belongs to the user, but it contains no tracks?
 }
 
 /**
@@ -390,7 +392,7 @@ export async function getFolder(folderName) {
  * @param url
  * @param recursiveCounter
  */
-export async function customFetch(url, recursiveCounter = 0) {
+export async function customFetch(url, recursiveCounter = 0) { // TODO please.. no.. recursion
     // set timeout to 30 seconds
     const timeout = 1000 * 20
     const urlObj = new URL(url);
