@@ -153,7 +153,7 @@ export async function getTracksFromPlaylist(playlistUri) {
  * @param item (either playlistItem or playlist uri)
  * @returns boolean
  */
-export async function isUserPlaylist(item) //TODO typen {
+export async function isUserPlaylist(item) { //TODO typen
     if (!item) return false // TODO ???
     // store the playlistItem
     const playlistItem = typeof item !== "string" ? item :
