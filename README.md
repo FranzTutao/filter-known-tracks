@@ -19,15 +19,16 @@ Creates a new playlist which only contains songs of the different/ foreign playl
 - will need to synchronize your Spotify library on startup, before it can be used
 - will put that newly created playlist in a folder called "New Songs" in the root directory
 - will copy image and name of the old playlist and mention the user who created the old playlist in the description
--
+
+It took ~12 minutes 30 seconds for a playlist with ~5600 tracks, where ~5360 were new tracks, to finish
 
 ## ToDo
 
 - allow usage on self owned playlists
+- clean up "getTrackObject" and use a parallel approach
 - find solution for how to handle library changes while re-syncing
-- implement own fetch that allows up to 100 track requests instead of the current 45
+- improve message feedback
 - make marketplace ready/ suitable
-- debug
 - custom compare instead of isrc (compare using title, artists and duration)
 - resync on demand
 - add blacklist for songs
@@ -38,8 +39,6 @@ Creates a new playlist which only contains songs of the different/ foreign playl
 - add option to make playlist with only tracks that are also in your library to find common tracks
 
 ## Known bugs:
-
-- fetching in batches over 50 doesn't work (theoretical limit is 100)
 
 ## Useful Links
 

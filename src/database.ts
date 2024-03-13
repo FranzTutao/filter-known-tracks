@@ -28,7 +28,8 @@ export async function resync() {
     initializeCounter(urisToSync)
     // get all database trackObjects
     const allDatabaseTrackObjects = await db.webTracks.toArray()
-    const allDatabaseUris = allDatabaseTrackObjects.map(trackObject => trackObject.uri)
+    const allDatabaseUris = []
+    allDatabaseTrackObjects.forEach(trackObject => allDatabaseUris.push(trackObject.uri))
     // remove tracks that are in database but not in map
     for (const uriFromDatabase of allDatabaseUris) {
         if (!counter.has(uriFromDatabase)) {

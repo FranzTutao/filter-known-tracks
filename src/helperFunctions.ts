@@ -3,7 +3,7 @@ import {counter, db} from "./database.js";
 /**
  * gets trackObjects using their uri
  * @param uris as String or Array
- * @returns trackObject or trackObjects as Array
+ * @returns Array of trackObjects
  */
 export async function getTrackObject(uris) {
     // check if uris exists
@@ -12,56 +12,41 @@ export async function getTrackObject(uris) {
         Spicetify.showNotification("Uri passed to getTrackObject is faulty")
         return null
     }
-    // handle Array
-    if (Array.isArray(uris)) {
-        // store trackIds from uris
-        const trackIds = new Set
-        // Array of all responses
-        const bulkResponse = []
-        //store all trackObjects
-        const trackObjects = []
+    // handle both array and string by making string an array
+    const urisArray = Array.isArray(uris) ? uris : [uris];
+    // store trackIds from uris
+    const trackIds = new Set
+    //store all trackObjects
+    const trackObjects = []
+    // Array for promises to allow asynchronous
+    const promises = []
 
-        // get track id from Array
-        for (const uri of uris) {
-            // get track id from uri
-            const trackId = uri.split(":")[2];
-            if (trackId) trackIds.add(trackId)
-        }
-        // split into 45 chunks for api request (at 50 it times out; if I want 100, I have to write my own fetch)
-        for (let i = 0; i < trackIds.size; i += 45) {
-            // format into String seperated by comma
-            const formattedTrackIds = [...trackIds].slice(i, i + 45).join(",")
-            const singeResponse = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)
-            // save tracks in an Array
-            bulkResponse.push(singeResponse.tracks)
-        }
-        // format Array of Array's to only an Array which contains the Tracks
-        if (!bulkResponse) {
-            console.warn("Empty bulk api response")
-            return null
-        }
-        // get trackObjects and return
-        for (const response of (bulkResponse.flat())) {
-            const trackObject = await makeTrackObject(response)
-            if (trackObject) trackObjects.push(trackObject);
-        }
-        return trackObjects
-        // handle String
-    } else {
-        // get trackId from uri
-        const trackId = uris.split(":")[2];
-        // get api data
-        const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
-        // create track object
-        const trackObject = await makeTrackObject(response)
-        // check for existence of  track object
-        if (trackObject) {
-            return trackObject
-        }
-        console.warn("Spotify response faulty: " + trackObject)
-        Spicetify.showNotification("Spotify response faulty")
+    // get track id from Array
+    for (const uri of urisArray) {
+        // get track id from uri
+        const trackId = uri.split(":")[2];
+        if (trackId) trackIds.add(trackId)
+    }
+    // split into 50 chunks for api request as that's the max it
+    for (let i = 0; i < trackIds.size; i += 50) {
+        // format into String seperated by comma
+        const formattedTrackIds = [...trackIds].slice(i, i + 50).join(",")
+        promises.push(customFetch(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`))
+    }
+    const bulkResponse = await Promise.all(promises)
+    // TODO() handle faulty bulkResponse
+    if (!bulkResponse) {
+        console.warn("Empty bulk api response")
         return null
     }
+    for (const response of bulkResponse) {
+        // check if tracks exist
+        if (!response?.tracks) continue
+        // get trackObjects
+        const trackObject = await makeTrackObject(response.tracks)
+        if (trackObject) trackObjects.push(trackObject);
+    }
+    return trackObjects.flat()
 }
 
 /**
@@ -69,32 +54,41 @@ export async function getTrackObject(uris) {
  * @param response
  * @return trackObject or null
  */
-export async function makeTrackObject(response) {
-    // return null if objects are not present
-    if (!response?.uri || !response?.external_ids?.isrc ||
-        !response?.name || !response?.artists || !response?.duration_ms) {
-        console.warn("Error while getting TrackObject: ")
-        console.warn(response)
-        Spicetify.showNotification("Error while getting TrackObject")
-        if (response?.uri) {
-            counter.delete(response.uri)
+export async function makeTrackObject(responses) {
+    // store newly created trackObjects
+    const trackObjects = []
+    // make response always an array
+    const objects = Array.isArray(responses) ? responses : [responses];
+
+    for (const response of objects) {
+        // return null if objects are not present
+        if (!response?.uri || !response?.external_ids?.isrc ||
+            !response?.name || !response?.artists || !response?.duration_ms) {
+            console.warn("Error while getting TrackObject: ")
+            console.log(response)
+            Spicetify.showNotification("Error while getting TrackObject")
+            if (response?.uri) {
+                counter.delete(response.uri)
+            }
+            return null
         }
-        return null
+        // get artist name as Array of Strings
+        const artists: Array<string> = []
+        for (const artist of response.artists) {
+            artists.push(artist.name)
+        }
+        // create and return track object
+        const trackObject: Track = {
+            uri: response.uri,
+            isrc: response.external_ids.isrc,
+            name: response.name,
+            artist: artists,
+            duration: response.duration_ms
+        }
+        trackObjects.push(trackObject)
     }
-    // get artist name as Array of Strings
-    const artists: Array<string> = []
-    for (const artist of response.artists) {
-        artists.push(artist.name)
-    }
-    // create and return track object
-    const trackObject: Track = {
-        uri: response.uri,
-        isrc: response.external_ids.isrc,
-        name: response.name,
-        artist: artists,
-        duration: response.duration_ms
-    }
-    return trackObject
+    if (!trackObjects) return null
+    return trackObjects
 }
 
 /**
@@ -306,6 +300,15 @@ export async function onPlaylistContextMenu(uris) {
             if (Math.floor(tracksToCompare.length / 2) === i) Spicetify.showNotification("1/2 of tracks processed")
             if (Math.floor(tracksToCompare.length / 4) * 3 === i) Spicetify.showNotification("3/4 of tracks processed")
         }
+        // handle case where the new playlist would be empty
+        if (trackUrisToAdd.length <= 0) {
+            // add context menu back
+            contextMenu.register()
+            // finish operation
+            console.log("You already know all tracks")
+            Spicetify.showNotification("You already know all tracks")
+            return
+        }
         // create playlist
         const playlistInfo = await getPlaylistInformation(playlistUri)
         const playlistName = playlistInfo.playlistName
@@ -383,13 +386,13 @@ export async function getFolder(folderName) {
 }
 
 /**
- * implementation of CosmosAsync with longer timeout
+ * implementation of CosmosAsync with longer timeout and 3 retries when it fails
  * @param url
  * @param recursiveCounter
  */
 export async function customFetch(url, recursiveCounter = 0) {
     // set timeout to 30 seconds
-    const timeout = 1000 * 30
+    const timeout = 1000 * 20
     const urlObj = new URL(url);
     const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
     const isWebAPI = urlObj.hostname === "api.spotify.com";
@@ -419,17 +422,20 @@ export async function customFetch(url, recursiveCounter = 0) {
     return Promise.race([fetchPromise, timeoutPromise]).then(response => {
         // return if request is successful
         if (response.ok) {
+            // wait 1 second to not spam
+            setTimeout(() => {
+            }, 1000)
             return response.json()
         } else {
             // try recursively three times and return undefined if request still failed
-            if (recursiveCounter === 3) {
+            if (recursiveCounter === 2) {
                 console.warn("Error while fetching data from the Spotify API")
                 return
             }
             // wait 1 second to not spam
             setTimeout(() => {
             }, 1000)
-            return customFetch(url, recursiveCounter++)
+            return customFetch(url, ++recursiveCounter)
         }
     })
 }
