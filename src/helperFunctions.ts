@@ -2,12 +2,13 @@ import {counter, db} from "./database.js";
 
 /**
  * gets trackObjects using their uri
- * @param uris as String or Array
+ * @param uris as String or Array<string>
  * @returns Array of trackObjects
  */
+// TODO please type parameters
 export async function getTrackObject(uris) {
     // check if uris exists
-    if (!uris) {
+    if (!uris) { // TODO this can fire at wrong times, are you checking for explicit null or empty string? '!"" == true', whereas empty array: ![] == false
         console.warn("Uri passed to getTrackObject is faulty: " + uris)
         Spicetify.showNotification("Uri passed to getTrackObject is faulty")
         return null
@@ -36,7 +37,7 @@ export async function getTrackObject(uris) {
     const bulkResponse = await Promise.all(promises)
     // TODO() handle faulty bulkResponse
     if (!bulkResponse) {
-        console.warn("Empty bulk api response")
+        console.warn("Empty bulk api response") // TODO uwu
         return null
     }
     for (const response of bulkResponse) {
@@ -58,10 +59,11 @@ export async function makeTrackObject(responses) {
     // store newly created trackObjects
     const trackObjects = []
     // make response always an array
-    const objects = Array.isArray(responses) ? responses : [responses];
+    const objects = Array.isArray(responses) ? responses : [responses]; // TODO ?????
 
     for (const response of objects) {
         // return null if objects are not present
+        if (!response) return
         if (!response?.uri || !response?.external_ids?.isrc ||
             !response?.name || !response?.artists || !response?.duration_ms) {
             console.warn("Error while getting TrackObject: ")
@@ -129,7 +131,7 @@ export async function getTracksFromContextMenu(playlistUri) {
     // get uris of tracks from playlist
     const uris = await getTracksFromPlaylist(playlistUri);
     // remove undefined entries and return Array?
-    return [...uris].flat();
+    return [...uris].flat(); // TODO what are you doing with flat() here?
 }
 
 /**
@@ -152,7 +154,7 @@ export async function getTracksFromPlaylist(playlistUri) {
  * @returns boolean
  */
 export async function isUserPlaylist(item) {
-    if (!item) return false
+    if (!item) return false // TODO ???
     // store the playlistItem
     const playlistItem = typeof item !== "string" ? item :
         await Spicetify.Platform.PlaylistAPI.getPlaylist(item).then(response => response.metadata);
@@ -380,7 +382,7 @@ export async function getFolder(folderName) {
  * @param url
  * @param recursiveCounter
  */
-export async function customFetch(url, recursiveCounter = 0) {
+export async function customFetch(url, recursiveCounter = 0) { // TODO please.. no.. recursion
     // set timeout to 30 seconds
     const timeout = 1000 * 20
     const urlObj = new URL(url);

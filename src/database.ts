@@ -18,17 +18,17 @@ export const db = new (class extends Dexie {
 
 
 /**
- * resync database
+ * resync database TODO couldnt have guessed that from the function name... When do we need to resync? What does resync mean?
  */
 export async function resync() {
     Spicetify.showNotification("ReSync started")
     // get local track uris
     const urisToSync = await getAllTracks()
-    // initialize counter
+    // initialize counter TODO useless
     initializeCounter(urisToSync)
     // get all database trackObjects
     const allDatabaseTrackObjects = await db.webTracks.toArray()
-    const allDatabaseUris = []
+    const allDatabaseUris = [] // Todo please always type
     allDatabaseTrackObjects.forEach(trackObject => allDatabaseUris.push(trackObject.uri))
     // remove tracks that are in database but not in map
     for (const uriFromDatabase of allDatabaseUris) {
@@ -57,7 +57,7 @@ export async function resync() {
  *
  * value is count starting from 1
  */
-export const counter = new Map()
+export const counter = new Map() // TODO <string, integer> Extract into Wrapper/Utils
 
 /**
  * initialize counter on startup
