@@ -15,8 +15,6 @@ export type PlaylistUri = `spotify:playlist:${string}` & string
 export type UserUri = `spotify:user:${string}` & string
 export type FolderUri = `${UserUri}:folder:${string}` & string
 
-// export type SpotifyResponse
-
 export interface UserContents {
     type: ItemType;
     addedAt: Date;
@@ -53,7 +51,7 @@ export interface UserContentsItem {
     hasDateAdded?: boolean;
     permissions?: null;
     collaborators?: Collaborators;
-    items?: FolderItems[];
+    items: UserContentsItem[];
 }
 
 export interface Collaborators {
@@ -103,87 +101,6 @@ export enum Label {
     Xlarge = "xlarge",
 }
 
-export interface FluffyItem {
-    addedAt: Date;
-    type: ItemType;
-    uri: string;
-    name: string;
-    description?: string;
-    images?: Image[];
-    madeFor?: null;
-    owner?: Owner;
-    totalLength?: number;
-    unfilteredTotalLength?: number;
-    totalLikes?: null;
-    duration?: null;
-    isLoaded?: boolean;
-    isOwnedBySelf?: boolean;
-    isPublished?: boolean;
-    hasEpisodes?: null;
-    hasSpotifyTracks?: null;
-    hasSpotifyAudiobooks?: null;
-    canAdd?: boolean;
-    canRemove?: boolean;
-    canPlay?: null;
-    formatListData?: TentacledFormatListData | null;
-    canReportAnnotationAbuse?: boolean;
-    hasDateAdded?: boolean;
-    permissions?: null;
-    collaborators?: Collaborators;
-    items?: FolderItems[];
-}
-
-export interface FolderItems {
-    type: ItemType;
-    addedAt: Date;
-    items?: FluffyItem[];
-    name: string;
-    uri: string;
-    description?: string;
-    images?: Image[];
-    madeFor?: null;
-    owner?: Owner;
-    totalLength?: number;
-    unfilteredTotalLength?: number;
-    totalLikes?: null;
-    duration?: null;
-    isLoaded?: boolean;
-    isOwnedBySelf?: boolean;
-    isPublished?: boolean;
-    hasEpisodes?: null;
-    hasSpotifyTracks?: null;
-    hasSpotifyAudiobooks?: null;
-    canAdd?: boolean;
-    canRemove?: boolean;
-    canPlay?: null;
-    formatListData?: FluffyFormatListData | null;
-    canReportAnnotationAbuse?: boolean;
-    hasDateAdded?: boolean;
-    permissions?: null;
-    collaborators?: Collaborators;
-}
-
-export interface TentacledFormatListData {
-    type: string;
-    attributes: TentacledAttributes;
-}
-
-export interface TentacledAttributes {
-    mediaListConfig: string;
-    request_id: string;
-    uri: string;
-    status: string;
-    isAlgotorial: string;
-    primary_color: string;
-    "recs.hasArtists": string;
-    autoplay: string;
-    "correlation-id": string;
-    moveFollowersJobId?: string;
-    episode_description?: string;
-    header_image_url_desktop?: string;
-    image_url?: string;
-}
-
 export interface Owner {
     type: string;
     uri: string;
@@ -219,7 +136,7 @@ export interface Track {
     disc_number: number;
     duration_ms: number;
     explicit: boolean;
-    external_ids: ExternalIDS;
+    external_ids: string;
     external_urls: ExternalUrls;
     href: string;
     id: string;
@@ -249,7 +166,7 @@ export interface Album {
 }
 
 export interface Artist {
-    external_urls: ExternalUrls;
+    external_urls: string;
     href: string;
     id: string;
     name: string;
@@ -265,10 +182,6 @@ export interface TrackImage {
     height: number;
     url: string;
     width: number;
-}
-
-export interface ExternalIDS {
-    isrc: string;
 }
 
 // ---------------------------------
@@ -305,12 +218,8 @@ export interface PlaylistEvent {
 
 export interface PlaylistEventData {
     operation: string;
-    items: PlaylistEventDataItem[];
+    items: PlaylistUri[];
     error: null;
-}
-
-export interface PlaylistEventDataItem {
-    uri: PlaylistUri;
 }
 
 // ---------------------------------------
@@ -349,15 +258,15 @@ export interface PlaylistContentsItem {
     playIndex:            null;
     addedAt:              Date;
     addedBy:              Owner;
-    formatListAttributes: FormatListAttributes;
-    type:                 ItemType;
-    uri:                  string;
+    formatListAttributes: any;
+    type:                 string;
+    uri:                  TrackUri;
     name:                 string;
     album:                Album;
     artists:              Artist[];
     discNumber:           number;
     trackNumber:          number;
-    duration:             ItemDuration;
+    duration:             any;
     isExplicit:           boolean;
     isLocal:              boolean;
     isPlayable:           boolean;
@@ -374,7 +283,7 @@ export interface Owner {
 }
 
 export interface Album {
-    type:   AlbumType;
+    type:   string;
     uri:    string;
     name:   string;
     artist: Artist;
@@ -382,28 +291,9 @@ export interface Album {
 }
 
 export interface Artist {
-    type: ArtistType;
+    type: string;
     uri:  string;
     name: string;
-}
-
-export enum ArtistType {
-    Artist = "artist",
-}
-
-export enum AlbumType {
-    Album = "album",
-}
-
-export interface ItemDuration {
-    milliseconds: number;
-}
-
-export interface FormatListAttributes {
-}
-
-export enum ItemType {
-    Track = "track",
 }
 
 export interface Metadata {

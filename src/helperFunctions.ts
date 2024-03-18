@@ -6,7 +6,6 @@ import {FolderUri, PlaylistUri, SpotifyTrack, TrackId, TrackObject, TrackUri} fr
  * @param uris as TrackUri[]
  * @returns TrackObject[]
  */
-// TODO please type parameters
 export async function getTrackObject(uris: TrackUri | TrackUri[]) {
     if (uris.length <= 0) {
         console.log("Uri passed to getTrackObject is faulty: " + uris)
@@ -30,7 +29,6 @@ export async function getTrackObject(uris: TrackUri | TrackUri[]) {
         promises.push(customFetch(new URL(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)))
     }
     const bulkResponse = await Promise.all(promises)
-    // TODO() handle faulty bulkResponse
     if (bulkResponse.length <= 0) {
         console.warn("Empty bulk api response")
         return null
@@ -40,7 +38,7 @@ export async function getTrackObject(uris: TrackUri | TrackUri[]) {
             console.log("response tracks array is empty")
             continue
         }
-        const trackObject = await makeTrackObject(response?.tracks)
+        const trackObject = await createTrackObject(response?.tracks)
         if (trackObject?.length >= 1) trackObjects.push(...trackObject);
     }
     return trackObjects.flat()
@@ -51,7 +49,7 @@ export async function getTrackObject(uris: TrackUri | TrackUri[]) {
  * @param responses spotify api response
  * @return trackObject or null
  */
-export async function makeTrackObject(responses) {
+export async function createTrackObject(responses) {
     const trackObjects = []
     // make response always an array
     const objects = Array.isArray(responses) ? responses : [responses]; // TODO ?????
