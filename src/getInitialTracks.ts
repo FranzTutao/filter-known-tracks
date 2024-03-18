@@ -1,62 +1,65 @@
 import {getTracksFromPlaylist, isUserPlaylist} from "./helperFunctions.js";
+import {TrackUri} from "./types.js";
 
 /**
- *  get all local tracks as uri
- *  @return uris as Array
+ *  get all local tracks
+ *  @return TrackUri[]
  */
-export async function getAllTracks() {
-    // initialize Array TODO useless comment tbh, but its fine. No need for oneliners explaining exactly what the code does though.
-    const localUris = [];
+export async function getAllLocalTracks() : Promise<TrackUri[]> {
+    const localUris : TrackUri[] = [];
+    // get all local playlists and their tracks
     const userContents = await Spicetify.Platform.RootlistAPI.getContents();
     console.log("User content loaded")
     // handle each item (can be playlist or folder)
-    for (const item of userContents.items) { // TODO what is item here? We are taking Items from UserContents? What is userContents?
-        const uri = await processItem(item);
-        // add uri to Array
-        if (uri !== undefined) {
-            localUris.push(uri);
+    for (const item of userContents.items) {
+        const uris: TrackUri = await processItem(item);
+        if (uris) {
+            localUris.push(uris);
         }
     }
-    localUris.push(await getLikedTracks()); // TODO I would advise for something like getLikedTracks().then(t => localUris.push(t)).
-    return localUris.flat();
+    // get all liked tracks
+    await getLikedTracks().then((uris : TrackUri[] | undefined) => {
+        if (uris) {
+            localUris.push(...uris)
+        }
+    })
+    return localUris.flat()
 }
 
 /**
  * get uris from folder or playlist recursively
  * @param item (playlist or folder)
- * @return track uris as Array
+ * @return TrackUri[]
  */
 async function processItem(item) { // TODO please specify types....
-    // handle playlist
-    if (item.type == "playlist") { // TODO typing it loosely is fine but it would be preferred to introduce an Enum.
-        if (!await isUserPlaylist(item)) return;
+    enum ItemType {
+        Playlist = "playlist",
+        Folder = "folder"
+    }
+    // handle playlists
+    if (item.type === ItemType.Playlist) {
+        const userPlaylist = await isUserPlaylist(item)
+        if (!userPlaylist) return;
         return await getTracksFromPlaylist(item.uri);
-    } else if (item.type == "folder") {
-        // create Array for folder that stores all its contents
+    } else if (item.type === ItemType.Folder) {
+        // handle folders
         const folderUris = [];
-        // loop through folder contents
         for (const nestedItem of item.items) {
-            // handle folder contents
             const uris = await processItem(nestedItem); // TODO recursion is not that nice
             folderUris.push(uris);
         }
         // return folder contents
         return folderUris.flat();
     } else {
-        console.warn("Something other then Playlist or Folder got found");
+        console.log("Something other then Playlist or Folder got found");
     }
 }
 
 /**
  * get all liked tracks
- * @returns uris as Array
+ * @returns TrackUri[]
  */
-async function getLikedTracks() {// TODO specifyyyy the tyyyyyyyyyyyyypeeeeeeeee
-    const liked = await Spicetify.Platform.LibraryAPI.getTracks({offset: 0, limit: -1}); // TODO limit -1 means infinite search?
-    if (!liked) return; // TODO ![] = false..
-    const uris = []
-    for (const item of liked.items) { // TODO liked.items.map((t => t.uri)) experiment with this, its the same thing
-        uris.push(item.uri)
-    }
-    return uris;
+async function getLikedTracks() : Promise <TrackUri[] | undefined> {
+    const liked = await Spicetify.Platform.LibraryAPI.getTracks({offset: 0, limit: -1});
+    return liked.items.map(likedTrack => likedTrack.uri)
 }

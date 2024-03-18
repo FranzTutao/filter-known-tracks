@@ -1,86 +1,79 @@
 import {counter, db} from "./database.js";
+import {FolderUri, PlaylistUri, SpotifyTrack, TrackId, TrackObject, TrackUri} from "./types.js";
 
 /**
- * gets trackObjects using their uri
- * @param uris as String or Array<string>
- * @returns Array of trackObjects
+ * get trackObjects using their uri
+ * @param uris as TrackUri[]
+ * @returns TrackObject[]
  */
 // TODO please type parameters
-export async function getTrackObject(uris) {
-    // check if uris exists
-    if (!uris) { // TODO this can fire at wrong times, are you checking for explicit null or empty string? '!"" == true', whereas empty array: ![] == false
-        console.warn("Uri passed to getTrackObject is faulty: " + uris)
+export async function getTrackObject(uris: TrackUri | TrackUri[]) {
+    if (uris.length <= 0) {
+        console.log("Uri passed to getTrackObject is faulty: " + uris)
         Spicetify.showNotification("Uri passed to getTrackObject is faulty")
         return null
     }
-    // handle both array and string by making string an array
+    // handle both Array and string by making string an Array
     const urisArray = Array.isArray(uris) ? uris : [uris];
-    // store trackIds from uris
-    const trackIds = new Set
-    //store all trackObjects
-    const trackObjects = []
-    // Array for promises to allow asynchronous
+    // store trackId's using uris as a Set because they are needed for the request and shouldn't duplicate
+    const trackIds: Set<TrackId> = new Set
+    const trackObjects: TrackObject[] = []
+    // store promises to allow asynchronous fetching
     const promises = []
-
-    // get track id from Array
     for (const uri of urisArray) {
-        // get track id from uri
-        const trackId = uri.split(":")[2];
+        const trackId: TrackId = uri.split(":")[2];
         if (trackId) trackIds.add(trackId)
     }
-    // split into 50 chunks for api request as that's the max it
+    // split into 50 chunks seperated by a comma for the api request as 50 is the maximum it takes
     for (let i = 0; i < trackIds.size; i += 50) {
-        // format into String seperated by comma
         const formattedTrackIds = [...trackIds].slice(i, i + 50).join(",")
-        promises.push(customFetch(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`))
+        promises.push(customFetch(new URL(`https://api.spotify.com/v1/tracks?ids=${formattedTrackIds}`)))
     }
     const bulkResponse = await Promise.all(promises)
     // TODO() handle faulty bulkResponse
-    if (!bulkResponse) {
-        console.warn("Empty bulk api response") // TODO uwu
+    if (bulkResponse.length <= 0) {
+        console.warn("Empty bulk api response")
         return null
     }
     for (const response of bulkResponse) {
-        // check if tracks exist
-        if (!response?.tracks) continue
-        // get trackObjects
-        const trackObject = await makeTrackObject(response.tracks)
-        if (trackObject) trackObjects.push(trackObject);
+        if (response?.tracks.length <= 0) {
+            console.log("response tracks array is empty")
+            continue
+        }
+        const trackObject = await makeTrackObject(response?.tracks)
+        if (trackObject?.length >= 1) trackObjects.push(...trackObject);
     }
     return trackObjects.flat()
 }
 
 /**
- * converts track api response to track object
- * @param response
+ * converts track api response to a track object
+ * @param responses spotify api response
  * @return trackObject or null
  */
 export async function makeTrackObject(responses) {
-    // store newly created trackObjects
     const trackObjects = []
     // make response always an array
     const objects = Array.isArray(responses) ? responses : [responses]; // TODO ?????
-
     for (const response of objects) {
-        // return null if objects are not present
         if (!response) return
         if (!response?.uri || !response?.external_ids?.isrc ||
             !response?.name || !response?.artists || !response?.duration_ms) {
-            console.warn("Error while getting TrackObject: ")
+            console.log("Error while getting TrackObject: ")
             console.log(response)
             Spicetify.showNotification("Error while getting TrackObject")
             if (response?.uri) {
                 counter.delete(response.uri)
             }
-            return null
+            continue
         }
-        // get artist name as Array of Strings
+        // get artist name as string[]
         const artists: Array<string> = []
         for (const artist of response.artists) {
             artists.push(artist.name)
         }
         // create and return track object
-        const trackObject: Track = {
+        const trackObject: TrackObject = {
             uri: response.uri,
             isrc: response.external_ids.isrc,
             name: response.name,
@@ -89,49 +82,50 @@ export async function makeTrackObject(responses) {
         }
         trackObjects.push(trackObject)
     }
-    if (!trackObjects) return null
+    if (trackObjects.length <= 0) return null
     return trackObjects
 }
 
 /**
- * create new playlist
+ * create new playlist at root folder
  * @param name
  * @returns uri of created playlist
  */
-export async function createNewPlaylist(name) {
+export async function createNewPlaylist(name: string) {
     return await Spicetify.Platform.RootlistAPI.createPlaylist(name, "", "");
 }
 
 /**
  *  add tracks to playlist (duplicates are only added once)
  * @param playlistUri
- * @param trackUri uri's as Array
+ * @param trackUris
  */
-export function addTracksToPlaylist(playlistUri, trackUri) {
+export function addTracksToPlaylist(playlistUri: PlaylistUri, trackUris: TrackUri[]) {
     // remove duplicates
-    const uniqueTrackUri = [...new Set(trackUri)]
-    // make trackUri an Array
-    const trackUris = [uniqueTrackUri].flat();
+    const uniqueTrackUris: TrackUri[] = [...new Set(trackUris)].flat();
     // check if it has tracks in it
-    if (trackUri.length === 0) {
+    if (uniqueTrackUris.length <= 0) {
         Spicetify.showNotification("No tracks to add to playlist found")
-        console.warn("No tracks to add to playlist found")
+        console.log("No tracks to add to playlist found")
         return
     }
     // add to specified playlist
-    Spicetify.Platform.PlaylistAPI.add(playlistUri, trackUris, {});
+    Spicetify.Platform.PlaylistAPI.add(playlistUri, uniqueTrackUris, {});
 }
 
 /**
- * get tracks from context menu (only if it's not your playlist!!!)
- * @param playlistUri
- * @returns uris as Array or undefined
+ * get tracks from context menu
+ * @param playlistUris
+ * @returns uris as Array or null
  */
-export async function getTracksFromContextMenu(playlistUri) {
+export async function getTracksFromContextMenu(playlistUris: PlaylistUri) {
     // get uris of tracks from playlist
-    const uris = await getTracksFromPlaylist(playlistUri);
+    const uris = await getTracksFromPlaylist(playlistUris);
     // remove undefined entries and return Array?
-    return [...uris].flat(); // TODO what are you doing with flat() here?
+    if (uris.length >= 1) {
+        return uris
+    }
+    return null
 }
 
 /**
@@ -139,7 +133,7 @@ export async function getTracksFromContextMenu(playlistUri) {
  * @param playlistUri from playlist
  * @return uris of tracks as Array
  */
-export async function getTracksFromPlaylist(playlistUri) {
+export async function getTracksFromPlaylist(playlistUri: PlaylistUri) {
     const trackObject = await Spicetify.Platform.PlaylistAPI.getContents(playlistUri);
     const uris = []
     for (const item of trackObject.items) {
@@ -153,8 +147,7 @@ export async function getTracksFromPlaylist(playlistUri) {
  * @param item (either playlistItem or playlist uri)
  * @returns boolean
  */
-export async function isUserPlaylist(item) {
-    if (!item) return false // TODO ???
+export async function isUserPlaylist(item: object | PlaylistUri): Promise<boolean> {
     // store the playlistItem
     const playlistItem = typeof item !== "string" ? item :
         await Spicetify.Platform.PlaylistAPI.getPlaylist(item).then(response => response.metadata);
@@ -162,28 +155,17 @@ export async function isUserPlaylist(item) {
 }
 
 /**
- * structure of track objects which are saved in the database
- */
-export interface Track {
-    uri: string
-    isrc: string
-    name: string
-    artist: Array<string>
-    duration: number
-}
-
-/**
  *  get a playlists name, original creator and playlist image ID
- * @param uri of playlist
+ * @param playlistUri of playlist
  * @returns name of playlist and original creator as object of strings.
  * @returns "Error getting name" when fails to get information for playlistName and creator Name
  * @returns undefined for image when fails to get information
  */
-export async function getPlaylistInformation(uri) {
-    const metadata = await Spicetify.Platform.PlaylistAPI.getMetadata(uri)
-    let playlistName = metadata?.name
-    let creatorName = metadata?.owner?.displayName
-    let playlistImageId
+export async function getPlaylistInformation(playlistUri: PlaylistUri) {
+    const metadata = await Spicetify.Platform.PlaylistAPI.getMetadata(playlistUri)
+    let playlistName: string | undefined = metadata?.name
+    let creatorName: string | undefined = metadata?.owner?.displayName
+    let playlistImageId: string | undefined
     // get playlistImage ID instead of uri
     // e.g. spotify:mosaic:foo:bar:foo:bar -> foo:bar:foo:bar
     playlistImageId = (metadata?.images[0]?.url).split(":").slice(2).join(":");
@@ -193,17 +175,17 @@ export async function getPlaylistInformation(uri) {
     }
     // give failure feedback
     if (!playlistName) {
-        console.warn("Failed to get Playlist name: ")
+        console.log("Failed to get Playlist name: ")
         console.log(metadata)
         Spicetify.showNotification("Failed to get Playlist name, please set manually")
     }
     if (!creatorName) {
-        console.warn("Failed to get Playlist creator name: ")
+        console.log("Failed to get Playlist creator name: ")
         console.log(metadata)
         Spicetify.showNotification("Failed to get Playlist creator name, please set manually")
     }
     if (!playlistImageId) {
-        console.warn("Failed to get Playlist image: ")
+        console.log("Failed to get Playlist image: ")
         console.log(metadata)
         Spicetify.showNotification("Failed to get Playlist image, please set manually")
     }
@@ -235,7 +217,7 @@ export async function getPlaylistInformation(uri) {
  * @param trackObject
  * @returns true if the isrc is in the database
  */
-export async function compareIsrc(trackObject) {
+export async function compareIsrc(trackObject: TrackObject) {
     const localUri = trackObject?.uri
     const localIsrc = trackObject?.isrc
     // check if needed values exist
@@ -247,7 +229,7 @@ export async function compareIsrc(trackObject) {
 }
 
 /**
- * context menu
+ * context menu for playlists
  */
 export const contextMenu = new Spicetify.ContextMenu.Item(
     "Generate filtered playlist",
@@ -259,24 +241,26 @@ export const contextMenu = new Spicetify.ContextMenu.Item(
 
 /**
  * triggered on context menu; starts the comparing process
- * @param uris of playlist
+ * @param playlistUris
  */
-export async function onPlaylistContextMenu(uris) {
+export async function onPlaylistContextMenu(playlistUris: string[]) {
+    // assert PlaylistUri as type
+    const typedPlaylistUri = playlistUris as PlaylistUri[]
     // remove function to call this again while processing
     contextMenu.deregister()
     // check uris
-    if (!uris) {
+    if (typedPlaylistUri.length <= 0) {
         console.log("Event failed to get the Playlist")
         Spicetify.showNotification("Event failed to get the Playlist")
         contextMenu.register()
         return
     }
     // loop through it as uris could be more than only one
-    for (const playlistUri of uris) {
+    for (const playlistUri of typedPlaylistUri) {
         // get tracks that have to be compared to the database
         const tracksToCompare = await getTracksFromContextMenu(playlistUri)
         // handle error
-        if (!tracksToCompare) {
+        if (!tracksToCompare || tracksToCompare.length <= 0) {
             console.log("Unable to fetch Tracks of this playlist.")
             console.log("Tracks to Compare to: " + tracksToCompare)
             Spicetify.showNotification("Unable to fetch Tracks of this playlist, please retry")
@@ -284,8 +268,9 @@ export async function onPlaylistContextMenu(uris) {
             return
         }
         Spicetify.showNotification("Processing, please wait")
-        let trackUrisToAdd
-        if (await isUserPlaylist(playlistUri)) {
+        let trackUrisToAdd: TrackUri[]
+        const userPlaylist = await isUserPlaylist(playlistUri)
+        if (userPlaylist) {
             // compare foreign playlist
             trackUrisToAdd = await compareForSelfOwnedPlaylist(tracksToCompare)
         } else {
@@ -322,7 +307,7 @@ export async function onPlaylistContextMenu(uris) {
                 {"description": description, "picture": playlistImage})
         }
         // change playlist location
-        const folderUri = await getFolder("New Songs")
+        const folderUri: FolderUri = await getFolder("New Songs")
         if (!folderUri) return
         await movePlaylist(createdPlaylistUri, folderUri)
     }
@@ -338,9 +323,9 @@ export async function onPlaylistContextMenu(uris) {
  * @param playlistUri
  * @param folderUri
  */
-export async function movePlaylist(playlistUri, folderUri) {
+export async function movePlaylist(playlistUri: PlaylistUri, folderUri: FolderUri) {
     if (!playlistUri || !folderUri) {
-        console.warn("Playlist couldn't be moved")
+        console.log("Playlist couldn't be moved")
 
         return
     }
@@ -352,13 +337,13 @@ export async function movePlaylist(playlistUri, folderUri) {
  * @param folderName
  * @returns uri of folder or undefined
  */
-export async function getFolder(folderName) {
+export async function getFolder(folderName: string) {
     if (!folderName) return
     // get root content
     const content = await Spicetify.Platform.RootlistAPI.getContents()
     const items = content?.items
-    if (!items) {
-        console.warn("Error getting Folders")
+    if (!items || items.length <= 0) {
+        console.log("Error getting Folders")
         Spicetify.showNotification("Error getting Folders")
         return
     }
@@ -370,7 +355,7 @@ export async function getFolder(folderName) {
     // create folder if not
     const createdFolder = await Spicetify.Platform.RootlistAPI.createFolder(folderName, "")
     if (!createdFolder?.uri) {
-        console.warn("Error creating Folder")
+        console.log("Error creating Folder")
         Spicetify.showNotification("Error creating Folder")
         return
     }
@@ -380,10 +365,10 @@ export async function getFolder(folderName) {
 /**
  * implementation of CosmosAsync with longer timeout and 3 retries when it fails
  * @param url
- * @param recursiveCounter
+ *
  */
-export async function customFetch(url, recursiveCounter = 0) { // TODO please.. no.. recursion
-    // set timeout to 30 seconds
+export async function customFetch(url: URL) {
+    // set timeout after 20 seconds
     const timeout = 1000 * 20
     const urlObj = new URL(url);
     const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
@@ -402,34 +387,31 @@ export async function customFetch(url, recursiveCounter = 0) { // TODO please.. 
         method: "GET",
         headers: injectedHeaders
     }
-    // send api request
-    const fetchPromise = fetch(url, requestOptions)
-    // make promise that will reject after timeout
-    const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-            reject(new Error("Request timed out"))
-        }, timeout)
-    })
-    // return the promise
-    return Promise.race([fetchPromise, timeoutPromise]).then(response => {
-        // return if request is successful
-        if (response.ok) {
-            // wait 1 second to not spam
-            setTimeout(() => {
-            }, 1000)
-            return response.json()
-        } else {
-            // try recursively three times and return undefined if request still failed
-            if (recursiveCounter === 2) {
-                console.warn("Error while fetching data from the Spotify API")
-                return
+    // try three times
+    for (let i = 0; i <= 2; i++) {
+        try {
+            const response = await Promise.race([
+                fetch(url.toString(), requestOptions),
+                new Promise((_, reject) => {
+                    setTimeout(() => {
+                        reject(new Error("RequestTimedOut"))
+                    }, timeout)
+                })
+            ]);
+            if (response.ok) {
+                const spotifyResponse = await response.json() as SpotifyTrack;
+                if (spotifyResponse.tracks) {
+                    return spotifyResponse;
+                }
             }
-            // wait 1 second to not spam
-            setTimeout(() => {
-            }, 1000)
-            return customFetch(url, ++recursiveCounter)
+        } catch (error: unknown) {
+            if (typeof error === "string") {
+                console.log("Error occurred: " + error)
+            } else if (error instanceof Error) {
+                console.log("Error occurred:", error.message);
+            }
         }
-    })
+    }
 }
 
 /**
@@ -437,8 +419,8 @@ export async function customFetch(url, recursiveCounter = 0) { // TODO please.. 
  * @param tracksToCompare
  * @returns null or Array of uri's
  */
-async function compareForForeignPlaylist(tracksToCompare) {
-    const trackUrisToAdd = []
+async function compareForForeignPlaylist(tracksToCompare: TrackUri[]) {
+    const trackUrisToAdd: TrackUri[] = []
     // variable for time indication
     let i = 0
     // compare playlist and map/ database
@@ -446,7 +428,7 @@ async function compareForForeignPlaylist(tracksToCompare) {
         // compare uri to map
         if (counter.has(trackUri)) continue
         // compare isrc of Track to database
-        const trackObject = await getTrackObject(trackUri)
+        const trackObject: null | TrackObject = await getTrackObject(trackUri)
         if (await compareIsrc(trackObject)) continue
         // store track to add
         trackUrisToAdd.push(trackUri)
@@ -464,8 +446,8 @@ async function compareForForeignPlaylist(tracksToCompare) {
  * @param tracksToCompare
  * @returns Array of uri's to add
  */
-async function compareForSelfOwnedPlaylist(tracksToCompare) {
-    const trackUrisToAdd = []
+async function compareForSelfOwnedPlaylist(tracksToCompare: TrackUri[]) {
+    const trackUrisToAdd: TrackUri[] = []
     // variable for time indication
     let i = 0
     // compare playlist and map/ database

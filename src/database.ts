@@ -1,12 +1,13 @@
 import Dexie, {Table} from "dexie";
-import {getTrackObject, Track} from "./helperFunctions.js";
-import {getAllTracks} from "./getInitialTracks.js";
+import {getTrackObject} from "./helperFunctions.js";
+import {getAllLocalTracks} from "./getInitialTracks.js";
+import {TrackObject, TrackUri} from "./types.js";
 
 /**
  * indexedDB storing track objects with uri as index
  */
 export const db = new (class extends Dexie {
-    webTracks!: Table<Track>
+    webTracks!: Table<TrackObject>
 
     constructor() {
         super("library-data")
@@ -18,62 +19,55 @@ export const db = new (class extends Dexie {
 
 
 /**
- * resync database TODO couldnt have guessed that from the function name... When do we need to resync? What does resync mean?
+ * resync indexedDB database and map where both get updated to represent the local library
+ * this is needed for when the user makes changes to the library while this extension is not running
  */
-export async function resync() {
+export async function resyncDatabaseAndMap() : Promise<void> {
     Spicetify.showNotification("ReSync started")
-    // get local track uris
-    const urisToSync = await getAllTracks()
-    // initialize counter TODO useless
+    const urisToSync : TrackUri[] = await getAllLocalTracks()
     initializeCounter(urisToSync)
-    // get all database trackObjects
     const allDatabaseTrackObjects = await db.webTracks.toArray()
-    const allDatabaseUris = [] // Todo please always type
-    allDatabaseTrackObjects.forEach(trackObject => allDatabaseUris.push(trackObject.uri))
-    // remove tracks that are in database but not in map
+    const allDatabaseUris : TrackUri[] = []
+    allDatabaseTrackObjects.forEach((trackObject : TrackObject) => allDatabaseUris.push(trackObject.uri))
+    // remove tracks that are not in map but that are in database
     for (const uriFromDatabase of allDatabaseUris) {
         if (!counter.has(uriFromDatabase)) {
-            // delete Track
             await db.webTracks.delete(uriFromDatabase)
         }
     }
-    const urisToAdd = []
+    const urisToAdd : TrackUri[] = []
     // add tracks that are in map but not in database
     for (const localUri of counter.keys()) {
-        // scip tracks that are in map and database
+        // skip tracks that are in map and database
         if (allDatabaseUris.includes(localUri)) continue
         urisToAdd.push(localUri)
 
     }
     // add Tracks to database
     const trackObjects = await getTrackObject(urisToAdd)
-    await db.webTracks.bulkAdd(trackObjects)
+    if (trackObjects && trackObjects.length >= 1) {
+        await db.webTracks.bulkAdd(trackObjects)
+    }
 }
 
 /**
  * counter to store amount of times a track is in local library/ database
- *
- * key is irc
- *
- * value is count starting from 1
  */
-export const counter = new Map() // TODO <string, integer> Extract into Wrapper/Utils
+// TODO Extract into Wrapper/Utils
+export const counter = new Map <TrackUri, number> ()
 
 /**
- * initialize counter on startup
+ * initialize counter to represent the local state ob the users library
  * @param urisToSync as Array
  */
-function initializeCounter(urisToSync) {
-    // check if uris has entries
+function initializeCounter(urisToSync : TrackUri[]) {
     if (urisToSync.length <= 0) return
     for (const uri of urisToSync) {
-        // check if uri exists
         if (!uri) continue
         // check if already exists
         if (counter.has(uri)) {
-            // increase value
             const value = counter.get(uri)
-            counter.set(uri, value + 1)
+            counter.set(uri, value! + 1)
         } else {
             counter.set(uri, 1)
         }
