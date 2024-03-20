@@ -24,33 +24,8 @@ export interface UserContents {
     totalItemCount: number;
 }
 
-export interface UserContentsItem {
+export interface UserContentsItem extends PlaylistMetadata{
     addedAt: Date;
-    type: ItemType;
-    uri: PlaylistUri | FolderUri;
-    name: string;
-    description?: string;
-    images?: Image[];
-    madeFor?: null;
-    owner?: Owner;
-    totalLength?: number;
-    unfilteredTotalLength?: number;
-    totalLikes?: null;
-    duration?: null;
-    isLoaded?: boolean;
-    isOwnedBySelf?: boolean;
-    isPublished?: boolean;
-    hasEpisodes?: null;
-    hasSpotifyTracks?: null;
-    hasSpotifyAudiobooks?: null;
-    canAdd?: boolean;
-    canRemove?: boolean;
-    canPlay?: null;
-    formatListData?: FormatListData | null;
-    canReportAnnotationAbuse?: boolean;
-    hasDateAdded?: boolean;
-    permissions?: null;
-    collaborators?: Collaborators;
     items: UserContentsItem[];
 }
 
@@ -114,16 +89,6 @@ export enum ItemType {
     Playlist = "playlist",
 }
 
-export interface FluffyFormatListData {
-    type: string;
-    attributes: FluffyAttributes;
-}
-
-export interface FluffyAttributes {
-    artistGid: string;
-    translatedArtistName: string;
-}
-
 // ------------------------------------------
 export interface SpotifyTrack {
     tracks: Track[];
@@ -136,7 +101,7 @@ export interface Track {
     disc_number: number;
     duration_ms: number;
     explicit: boolean;
-    external_ids: string;
+    external_ids: ExternalIds;
     external_urls: ExternalUrls;
     href: string;
     id: string;
@@ -146,7 +111,7 @@ export interface Track {
     preview_url: string;
     track_number: number;
     type: string;
-    uri: string;
+    uri: TrackUri;
 }
 
 export interface Album {
@@ -176,6 +141,10 @@ export interface Artist {
 
 export interface ExternalUrls {
     spotify: string;
+}
+
+export interface ExternalIds {
+    isrc: string;
 }
 
 export interface TrackImage {
@@ -218,10 +187,13 @@ export interface PlaylistEvent {
 
 export interface PlaylistEventData {
     operation: string;
-    items: PlaylistUri[];
+    items: PlaylistEventDataItem[];
     error: null;
 }
 
+export interface PlaylistEventDataItem {
+    uri: PlaylistUri;
+}
 // ---------------------------------------
 
 export interface LikedEvent {
@@ -242,96 +214,97 @@ export interface LikedEventData {
 // ----------------------------------------------
 
 export interface Playlist {
-    metadata: Metadata;
+    metadata: PlaylistMetadata;
     contents: PlaylistContents;
 }
 
 export interface PlaylistContents {
-    items:       PlaylistContentsItem[];
-    offset:      number;
-    limit:       number;
+    items: PlaylistContentsItem[];
+    offset: number;
+    limit: number;
     totalLength: number;
 }
 
 export interface PlaylistContentsItem {
-    uid:                  string;
-    playIndex:            null;
-    addedAt:              Date;
-    addedBy:              Owner;
+    uid: string;
+    playIndex: null;
+    addedAt: Date;
+    addedBy: Owner;
     formatListAttributes: any;
-    type:                 string;
-    uri:                  TrackUri;
-    name:                 string;
-    album:                Album;
-    artists:              Artist[];
-    discNumber:           number;
-    trackNumber:          number;
-    duration:             any;
-    isExplicit:           boolean;
-    isLocal:              boolean;
-    isPlayable:           boolean;
-    is19PlusOnly:         boolean;
-    hasAssociatedVideo:   boolean;
+    type: string;
+    uri: TrackUri[];
+    name: string;
+    album: Album;
+    artists: Artist[];
+    discNumber: number;
+    trackNumber: number;
+    duration: any;
+    isExplicit: boolean;
+    isLocal: boolean;
+    isPlayable: boolean;
+    is19PlusOnly: boolean;
+    hasAssociatedVideo: boolean;
 }
 
 export interface Owner {
-    type:        string;
-    uri:         UserUri;
-    username:    string;
+    type: string;
+    OwnerUri: UserUri;
+    username: string;
     displayName: string;
-    images:      Image[];
+    OwnerImages: Image[];
 }
 
 export interface Album {
-    type:   string;
-    uri:    string;
-    name:   string;
+    type: string;
+    uri: string;
+    name: string;
     artist: Artist;
-    images: Image[];
+    AlbumImages: Image[];
 }
 
 export interface Artist {
     type: string;
-    uri:  string;
+    uri: string;
     name: string;
 }
 
-export interface Metadata {
-    type:                     string;
-    uri:                      string;
-    name:                     string;
-    description:              string;
-    images:                   Image[];
-    madeFor:                  null;
-    owner:                    Owner;
-    totalLength:              number;
-    unfilteredTotalLength:    number;
-    totalLikes:               number;
-    duration:                 MetadataDuration;
-    isLoaded:                 boolean;
-    isOwnedBySelf:            boolean;
-    isPublished:              boolean;
-    hasEpisodes:              boolean;
-    hasSpotifyTracks:         boolean;
-    hasSpotifyAudiobooks:     boolean;
-    canAdd:                   boolean;
-    canRemove:                boolean;
-    canPlay:                  boolean;
-    formatListData:           null;
+export interface PlaylistMetadata {
+    type: string;
+    uri: string;
+    name: string;
+    description: string;
+    images: Image[];
+    madeFor: null;
+    owner: Owner;
+    totalLength: number;
+    unfilteredTotalLength: number;
+    totalLikes: number;
+    duration: MetadataDuration;
+    isLoaded: boolean;
+    isOwnedBySelf: boolean;
+    isPublished: boolean;
+    hasEpisodes: boolean;
+    hasSpotifyTracks: boolean;
+    hasSpotifyAudiobooks: boolean;
+    canAdd: boolean;
+    canRemove: boolean;
+    canPlay: boolean;
+    formatListData: null;
     canReportAnnotationAbuse: boolean;
-    hasDateAdded:             boolean;
-    permissions:              Permissions;
-    collaborators:            Collaborators;
+    hasDateAdded: boolean;
+    permissions: Permissions;
+    collaborators: Collaborators;
+    isCollaborative: boolean;
 }
 
 export interface MetadataDuration {
     milliseconds: number;
-    isEstimate:   boolean;
+    isEstimate: boolean;
 }
 
 export interface Permissions {
-    canView:                    boolean;
+    canView: boolean;
     canAdministratePermissions: boolean;
-    canCancelMembership:        boolean;
-    isPrivate:                  boolean;
+    canCancelMembership: boolean;
+    isPrivate: boolean;
 }

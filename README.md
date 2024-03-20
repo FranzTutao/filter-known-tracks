@@ -26,7 +26,8 @@ It took ~12 minutes 30 seconds for a playlist with ~5600 tracks, where ~5360 wer
 
 ## ToDo
 
-- clean up "getTrackObject" and use a parallel approach
+#### Features
+
 - find solution for how to handle library changes while re-syncing
 - improve message feedback
 - make marketplace ready/ suitable
@@ -36,21 +37,18 @@ It took ~12 minutes 30 seconds for a playlist with ~5600 tracks, where ~5360 wer
 - add blacklist and whitelist for playlists
 - allow specific path where playlist is put
 - allow custom description
-- toggle between all and self-owned tracks
-- add option to make playlist with only tracks that are also in your library to find common tracks
+- toggle welcome message and make it customizable
+- toggle between all and self-owned tracks from your library
+- add option to make/ compare playlist with tracks that are in your library to find tracks in common
 
-## Known bugs:
+#### Improve code
 
-
-## Improve code
-
-- check all comments and improve them
-- type everything
 - restructure code to have the things we expect first, and not the edge cases
 - add utils class for map to handle everything map related
-- get rid of recursion
-- rewrite functions to only take an array instead of array or string
-- change console log levels to suitable ones
+- use Error instead of undefined/ null
+- make functions smaller and thereby easier to test and modify
+
+## Known bugs:
 
 ## Useful Links
 

@@ -80,7 +80,7 @@ export async function likedEventHandler(event: LikedEvent) {
  * add tracks to database and map
  * @param uris
  */
-export async function addTracksToDatabase(uris: Array<TrackUri>) {
+export async function addTracksToDatabase(uris: TrackUri[]) {
     if (uris.length <= 0) return
     const urisToAdd: TrackUri[] = []
     for (let i = 0; i <= uris.length - 1; i++) {

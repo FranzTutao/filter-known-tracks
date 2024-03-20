@@ -1,5 +1,12 @@
-import {getTracksFromPlaylist, isUserPlaylist} from "./helperFunctions.js";
-import {PlaylistContentsItem, PlaylistUri, TrackUri, UserContents, UserContentsItem} from "./types.js";
+import {getTracksFromPlaylist, isPlaylistSuitable} from "./helperFunctions.js";
+import {
+    PlaylistContentsItem,
+    PlaylistMetadata,
+    PlaylistUri,
+    TrackUri,
+    UserContents,
+    UserContentsItem
+} from "./types.js";
 
 /**
  *  get all local tracks
@@ -44,7 +51,7 @@ async function processItem(item: UserContentsItem) {
         const currentItem = stack.pop();
         if (!currentItem) continue;
         if (currentItem.type === ItemType.Playlist) {
-            const userPlaylist = await isUserPlaylist(currentItem);
+            const userPlaylist = await isPlaylistSuitable(currentItem as PlaylistMetadata);
             if (userPlaylist) {
                 const tracks: TrackUri[] = await getTracksFromPlaylist(currentItem.uri as PlaylistUri);
                 trackUris.push(...tracks);

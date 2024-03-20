@@ -11,6 +11,7 @@ async function main() {
     Spicetify.showNotification("Hello Franz3, welcome back <3");
     // wait for everything necessary to loaded
     while (!Spicetify?.Platform?.PlaylistAPI?.getPlaylist) {
+        // @ts-ignore
         await new Promise(res => Spicetify.Events.platformLoaded.on(res))
     }
     await resyncDatabaseAndMap()
