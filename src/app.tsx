@@ -1,5 +1,6 @@
 import {likedEventHandler, playlistEventHandler, trackEventHandler} from "./listener.js";
 import {resyncDatabaseAndMap} from "./database.js";
+import {Settings} from "./settings.js";
 import {contextMenu} from "./helperFunctions.js";
 
 async function main() {
@@ -8,7 +9,10 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     // Show welcome message
-    Spicetify.showNotification("Hello Franz3, welcome back <3");
+    const settings = new Settings();
+    if (settings.isWelcomeUserToggled()) {
+        Spicetify.showNotification(`Hello ${settings.getWelcomeUserName()}, welcome back <3`);
+    }
     // wait for everything necessary to loaded
     while (!Spicetify?.Platform?.PlaylistAPI?.getPlaylist) {
         // @ts-ignore

@@ -15,6 +15,8 @@ export type PlaylistUri = `spotify:playlist:${string}` & string
 export type UserUri = `spotify:user:${string}` & string
 export type FolderUri = `${UserUri}:folder:${string}` & string
 
+// ---------------------------------------------------------------------------
+
 export interface UserContents {
     type: ItemType;
     addedAt: Date;

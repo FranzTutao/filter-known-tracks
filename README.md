@@ -35,10 +35,6 @@ It took ~12 minutes 30 seconds for a playlist with ~5600 tracks, where ~5360 wer
 - resync on demand
 - add blacklist for songs
 - add blacklist and whitelist for playlists
-- allow specific path where playlist is put
-- allow custom description
-- toggle welcome message and make it customizable
-- toggle between all and self-owned tracks from your library
 - add option to make/ compare playlist with tracks that are in your library to find tracks in common
 - auto skip if track is in users library
 

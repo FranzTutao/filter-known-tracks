@@ -10,6 +10,7 @@ import {
     TrackObject,
     TrackUri
 } from "./types.js";
+import {Settings} from "./settings.js";
 
 /**
  * get trackObjects using their uri
@@ -149,13 +150,18 @@ export async function getTracksFromPlaylist(playlistUri: PlaylistUri) {
 }
 
 /**
- * check if the provided playlist belongs to the user (true) or not (false) and has tracks in it
+ * check if the provided playlist belongs to the user (true) or not (false) depending on the settings
+ * always check if the provided playlist has tracks in it
  * @param playlistItem (either playlistItem or playlist uri)
  * @returns boolean
  */
 export async function isPlaylistSuitable(playlistItem: PlaylistMetadata): Promise<boolean> {
-    // store the playlistItem
-    return (playlistItem.isCollaborative || playlistItem.isOwnedBySelf || playlistItem.canAdd) && playlistItem.totalLength > 0;
+    const isSelfOwnedToggled = new Settings().isSelfOwnedToggled()
+    if (isSelfOwnedToggled) {
+        return (playlistItem.isCollaborative || playlistItem.isOwnedBySelf || playlistItem.canAdd) && playlistItem.totalLength > 0;
+    } else {
+        return playlistItem.totalLength > 0;
+    }
 }
 
 /**
@@ -301,7 +307,7 @@ export async function onPlaylistContextMenu(playlistUris: string[]) {
         // create description text
         const creatorName = playlistInfo.creatorName
         const playlistImage = playlistInfo.playlistImage
-        let description = "Original playlist from: " + creatorName + " | Playlist created via a Spicetify extension developed by Franz3"
+        let description = new Settings().getPlaylistDescription(creatorName)
         // change description of playlist
         // no image
         if (!playlistImage) {
@@ -313,7 +319,8 @@ export async function onPlaylistContextMenu(playlistUris: string[]) {
                 {"description": description, "picture": playlistImage})
         }
         // change playlist location
-        const folderUri: FolderUri = await getFolder("New Songs")
+        const folderName = new Settings().getFolderName()
+        const folderUri: FolderUri = await getFolder(folderName)
         if (!folderUri) return
         await movePlaylist(createdPlaylistUri, folderUri)
     }
