@@ -34,36 +34,6 @@ export interface Collaborators {
     items: any[];
 }
 
-export interface FormatListData {
-    type: string;
-    attributes: FormatListDataAttributes;
-}
-
-export interface FormatListDataAttributes {
-    "correlation-id"?: string;
-    image_url: string;
-    header_image_url_desktop: string;
-    "recs.hasArtists"?: string;
-    primary_color: string;
-    mediaListConfig?: string;
-    moveFollowersJobId?: string;
-    episode_description?: string;
-    isAlgotorial?: string;
-    status: string;
-    uri?: string;
-    request_id?: string;
-    controls_show_count?: string;
-    "shuffle.algorithm"?: string;
-    controls_show_images?: string;
-    "madeFor.displayed"?: string;
-    "madeFor.username"?: string;
-    controls_show_names?: string;
-    customize_url?: string;
-    temporary_hack_prefer_linear_playback?: string;
-    regularly_updated?: string;
-    "always-on-demand"?: string;
-}
-
 export interface Image {
     url: string;
     label: Label;

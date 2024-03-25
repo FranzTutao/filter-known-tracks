@@ -41,7 +41,6 @@ export async function resyncDatabaseAndMap() : Promise<void> {
         // skip tracks that are in map and database
         if (allDatabaseUris.includes(localUri)) continue
         urisToAdd.push(localUri)
-
     }
     // add Tracks to database
     const trackObjects = await getTrackObject(urisToAdd)

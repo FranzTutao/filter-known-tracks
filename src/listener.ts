@@ -22,7 +22,7 @@ export async function trackEventHandler(event: TrackEvent) {
             urisToDelete.push(track.uri);
         }
         if (urisToDelete.length > 0) {
-            removeTracks(urisToDelete)
+            removeTracksFromDatabase(urisToDelete)
         }
     }
 }
@@ -47,7 +47,7 @@ export async function playlistEventHandler(event: PlaylistEvent) {
         await getTracksFromPlaylist(playlist.uri).then((uris : TrackUri[]) => urisToDelete.push(... uris))
     }
     if (urisToDelete.length > 0) {
-        removeTracks(urisToDelete.flat())
+        removeTracksFromDatabase(urisToDelete.flat())
     }
 }
 
@@ -71,7 +71,7 @@ export async function likedEventHandler(event: LikedEvent) {
             urisToDelete.push(uri);
         }
         if (urisToDelete.length > 0) {
-            removeTracks(urisToDelete)
+            removeTracksFromDatabase(urisToDelete)
         }
     }
 }
@@ -110,7 +110,7 @@ export async function addTracksToDatabase(uris: TrackUri[]) {
  * remove tracks from database and map
  * @param uris
  */
-export function removeTracks(uris: TrackUri[]) {
+export function removeTracksFromDatabase(uris: TrackUri[]) {
     if (uris.length <= 0) return
     const urisToRemove: TrackUri[] = []
     for (let i = 0; i <= uris.length - 1; i++) {
