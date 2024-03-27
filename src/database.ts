@@ -22,20 +22,21 @@ export const db = new (class extends Dexie {
  * resync indexedDB database and map where both get updated to represent the local library
  * this is needed for when the user makes changes to the library while this extension is not running
  */
-export async function resyncDatabaseAndMap() : Promise<void> {
+export async function resyncDatabaseAndMap(): Promise<void> {
     Spicetify.showNotification("ReSync started")
-    const urisToSync : TrackUri[] = await getAllLocalTracks()
+    const urisToSync: TrackUri[] = await getAllLocalTracks()
+    counter.clear()
     initializeCounter(urisToSync)
     const allDatabaseTrackObjects = await db.webTracks.toArray()
-    const allDatabaseUris : TrackUri[] = []
-    allDatabaseTrackObjects.forEach((trackObject : TrackObject) => allDatabaseUris.push(trackObject.uri))
+    const allDatabaseUris: TrackUri[] = []
+    allDatabaseTrackObjects.forEach((trackObject: TrackObject) => allDatabaseUris.push(trackObject.uri))
     // remove tracks that are not in map but that are in database
     for (const uriFromDatabase of allDatabaseUris) {
         if (!counter.has(uriFromDatabase)) {
             await db.webTracks.delete(uriFromDatabase)
         }
     }
-    const urisToAdd : TrackUri[] = []
+    const urisToAdd: TrackUri[] = []
     // add tracks that are in map but not in database
     for (const localUri of counter.keys()) {
         // skip tracks that are in map and database
@@ -47,19 +48,21 @@ export async function resyncDatabaseAndMap() : Promise<void> {
     if (trackObjects && trackObjects.length >= 1) {
         await db.webTracks.bulkAdd(trackObjects)
     }
+    Spicetify.showNotification("ReSync complete")
+    console.log("ReSync complete")
 }
 
 /**
  * counter to store amount of times a track is in local library/ database
  */
 // TODO Extract into Wrapper/Utils
-export const counter = new Map <TrackUri, number> ()
+export const counter = new Map<TrackUri, number>()
 
 /**
  * initialize counter to represent the local state ob the users library
  * @param urisToSync as Array
  */
-function initializeCounter(urisToSync : TrackUri[]) {
+function initializeCounter(urisToSync: TrackUri[]) {
     if (urisToSync.length <= 0) return
     for (const uri of urisToSync) {
         if (!uri) continue

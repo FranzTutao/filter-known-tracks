@@ -32,7 +32,6 @@ It took ~12 minutes 30 seconds for a playlist with ~5600 tracks, where ~5360 wer
 - improve message feedback
 - make marketplace ready/ suitable
 - custom compare instead of isrc (compare using title, artists and duration)
-- resync on demand
 - add blacklist for songs
 - add blacklist and whitelist for playlists
 - add option to make/ compare playlist with tracks that are in your library to find tracks in common
@@ -58,3 +57,5 @@ https://developer.spotify.com/documentation/web-api/reference/get-track
 https://spicetify.app/docs/development/api-wrapper/methods/cosmos-async
 
 https://github.com/spicetify/spicetify-marketplace/wiki/Publishing-to-Marketplace
+
+https://github.com/FlafyDev/spicetify-creator-plugins/tree/main/packages/spcr-settings

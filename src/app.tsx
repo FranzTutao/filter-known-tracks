@@ -10,6 +10,7 @@ async function main() {
     }
     // Show welcome message
     const settings = new Settings();
+    settings.initializeSettings()
     if (settings.isWelcomeUserToggled()) {
         Spicetify.showNotification(`Hello ${settings.getWelcomeUserName()}, welcome back <3`);
     }
@@ -19,8 +20,6 @@ async function main() {
         await new Promise(res => Spicetify.Events.platformLoaded.on(res))
     }
     await resyncDatabaseAndMap()
-    Spicetify.showNotification("ReSync complete")
-    console.log("ReSync complete")
     contextMenu.register()
     // register event listener for adding/ removing songs
     Spicetify.Platform.PlaylistAPI.getEvents().addListener("operation_complete", trackEventHandler);
