@@ -37,13 +37,18 @@ export class Settings {
         this.saveSettings()
         this.settings.rerender()
         // format broken button correctly
-        setTimeout(function () {
-            const newClasses: string = "Button-sc-y0gtbx-0 Button-small-buttonSecondary-isUsingKeyboard-useBrowserDefaultFocusStyle x-settings-button";
-            const button = document.getElementById('filter-known-tracks-settings.resync') as HTMLElement;
-            if (button) {
-                button.className = newClasses;
+        const observer = new MutationObserver(function (mutationsList, observer) {
+            for (const mutation of mutationsList) {
+                if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+                    if (document.getElementById("filter-known-tracks-settings.resync")) {
+                        applyClassesToButton()
+                        observer.disconnect()
+                        break
+                    }
+                }
             }
-        }, 1000);
+        })
+        observer.observe(document.body, {childList: true, subtree: true});
     }
 
     /**
@@ -96,5 +101,16 @@ export class Settings {
      */
     isSelfOwnedToggled() {
         return this.settings.getFieldValue(Setting.selfOwnedToggle) as boolean
+    }
+}
+
+/**
+ * sets the correct classes to fix the css for buttons
+ */
+function applyClassesToButton() {
+    const newClasses = "Button-sc-y0gtbx-0 Button-small-buttonSecondary-isUsingKeyboard-useBrowserDefaultFocusStyle x-settings-button";
+    const button = document.getElementById('filter-known-tracks-settings.resync') as HTMLElement;
+    if (button) {
+        button.className = newClasses;
     }
 }
