@@ -46,7 +46,6 @@ async function processItem(item: UserContentsItem) {
 
     const stack = [item];
     const trackUris: TrackUri[] = [];
-
     while (stack.length > 0) {
         const currentItem = stack.pop();
         if (!currentItem) continue;

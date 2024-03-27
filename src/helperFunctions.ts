@@ -153,11 +153,12 @@ export async function getTracksFromPlaylist(playlistUri: PlaylistUri) {
  * check if the provided playlist belongs to the user (true) or not (false) depending on the settings
  * always check if the provided playlist has tracks in it
  * @param playlistItem (either playlistItem or playlist uri)
+ * @param ignoreUserSettings
  * @returns boolean
  */
-export async function isPlaylistSuitable(playlistItem: PlaylistMetadata): Promise<boolean> {
+export async function isPlaylistSuitable(playlistItem: PlaylistMetadata, ignoreUserSettings: boolean = false): Promise<boolean> {
     const isSelfOwnedToggled = new Settings().isSelfOwnedToggled()
-    if (isSelfOwnedToggled) {
+    if (isSelfOwnedToggled || ignoreUserSettings) {
         return (playlistItem.isCollaborative || playlistItem.isOwnedBySelf || playlistItem.canAdd) && playlistItem.totalLength > 0;
     } else {
         return playlistItem.totalLength > 0;
@@ -281,7 +282,7 @@ export async function onPlaylistContextMenu(playlistUris: string[]) {
         let trackUrisToAdd: TrackUri[]
         const playlistItem: PlaylistMetadata =
             await Spicetify.Platform.PlaylistAPI.getPlaylist(playlistUri).then((response: Playlist) => response.metadata);
-        const userPlaylist = await isPlaylistSuitable(playlistItem)
+        const userPlaylist = await isPlaylistSuitable(playlistItem, true)
         if (userPlaylist) {
             // compare foreign playlist
             trackUrisToAdd = await compareForSelfOwnedPlaylist(tracksToCompare)
